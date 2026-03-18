@@ -8,6 +8,5 @@ PsychoMatic is an R package that streamlines psychometric workflows using SEM-ba
 
 ## Installation
 
-```r
 install.packages("remotes")
 remotes::install_github("gmoncayoj/PsychoMatic")
