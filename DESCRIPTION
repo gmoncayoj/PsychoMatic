@@ -3,15 +3,19 @@ Type: Package
 Title: Automated Psychometric Workflows for R
 Version: 0.1.0
 Authors@R:
-    person(given = "Jose",
-           family = "GM",
-           email = "your_email@example.com",
-           role = c("aut", "cre"))
-Description: Provides helper functions for automated psychometric analyses,
-    including descriptive statistics, exploratory factor analysis,
-    confirmatory factor analysis, alignment-based invariance, and
-    multigroup factorial invariance workflows.
+    person("Jose", "Gamarra-Moncayo",
+           email = "gamarramoncayoj@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-0781-3616")
+)
+Description: Automate psychometric analyses by making decisions based on robust recommendations from the scientific literature. 
+            You can perform univariate descriptive analyses, exploratory and confirmatory factor analysis, reliability analysis, 
+            as well as factor invariance and alignment invariance. It generates automatic reports ready for you to incorporate into your study, 
+            and provides references in APA 7 format that justify the decisions made. However, you can also customize your analyses by selecting 
+            the parameters you need to adjust.
 License: MIT + file LICENSE
+URL: https://github.com/gmoncayoj/PsychoMatic
+BugReports: https://github.com/gmoncayoj/PsychoMatic/issues
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports:
