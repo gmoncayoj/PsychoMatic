@@ -30,6 +30,9 @@ Imports:
     writexl,
     stats,
     utils
+Suggests:
+    testthat (>= 3.0.0)
 LazyData: false
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
+Config/testthat/edition: 3
