@@ -6,8 +6,7 @@ Authors@R:
     person("Jose", "Gamarra-Moncayo",
            email = "gamarramoncayoj@gmail.com",
            role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0002-0781-3616")
-)
+           comment = c(ORCID = "0000-0002-0781-3616"))
 Description: Automate psychometric analyses by making decisions based on robust recommendations from the scientific literature. 
             You can perform univariate descriptive analyses, exploratory and confirmatory factor analysis, reliability analysis, 
             as well as factor invariance and alignment invariance. It generates automatic reports ready for you to incorporate into your study, 
