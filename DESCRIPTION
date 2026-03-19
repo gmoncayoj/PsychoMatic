@@ -1,0 +1,32 @@
+Package: PsychoMatic
+Type: Package
+Title: Automated Psychometric Workflows for R
+Version: 0.1.0
+Authors@R:
+    person(given = "Jose",
+           family = "GM",
+           email = "your_email@example.com",
+           role = c("aut", "cre"))
+Description: Provides helper functions for automated psychometric analyses,
+    including descriptive statistics, exploratory factor analysis,
+    confirmatory factor analysis, alignment-based invariance, and
+    multigroup factorial invariance workflows.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports:
+    flextable,
+    GPArotation,
+    lavaan,
+    MVN,
+    officer,
+    openxlsx,
+    psych,
+    semTools,
+    sirt,
+    writexl,
+    stats,
+    utils
+LazyData: false
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
