@@ -1,0 +1,13 @@
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+*.Rproj
+*.tar.gz
+*.Rcheck/
+.r-test-lib/
+.r-lib/
+.Rproj.user
+.httr-oauth
+.DS_Store
+.quarto
