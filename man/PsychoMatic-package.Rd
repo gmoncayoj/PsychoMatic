@@ -14,8 +14,16 @@ flujos de trabajo pensados para R y RStudio.
 Funciones principales: \code{desc_auto()}, \code{efa_auto()}, \code{exportar_efa()},
 \code{cfa_auto()}, \code{inv_align_auto()} y \code{factorial_invariance_auto()}.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/gmoncayoj/PsychoMatic}
+  \item Report bugs at \url{https://github.com/gmoncayoj/PsychoMatic/issues}
+}
+
+}
 \author{
-\strong{Maintainer}: Jose GM \email{your_email@example.com}
+\strong{Maintainer}: Jose Gamarra-Moncayo \email{gamarramoncayoj@gmail.com} (\href{https://orcid.org/0000-0002-0781-3616}{ORCID})
 
 }
 \keyword{internal}

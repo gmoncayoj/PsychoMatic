@@ -9,12 +9,10 @@
 #'
 #' @keywords internal
 #' @import flextable
-#' @import GPArotation
-#' @import lavaan
 #' @import officer
 #' @import openxlsx
-#' @import psych
-#' @import semTools
 #' @import stats
 #' @import utils
+#' @importFrom lavaan fitMeasures lavaanify lavInspect modificationIndices standardizedSolution
+#' @importFrom psych KMO alpha cortest.bartlett fa fa.parallel omega polychoric
 "_PACKAGE"
