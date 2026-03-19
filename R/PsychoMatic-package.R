@@ -13,6 +13,8 @@
 #' @import openxlsx
 #' @import stats
 #' @import utils
+#' @importFrom GPArotation oblimin
 #' @importFrom lavaan fitMeasures lavaanify lavInspect modificationIndices standardizedSolution
+#' @importFrom Matrix nearPD
 #' @importFrom psych KMO alpha cortest.bartlett fa fa.parallel omega polychoric
 "_PACKAGE"

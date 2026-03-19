@@ -21,6 +21,7 @@ Imports:
     flextable,
     GPArotation,
     lavaan,
+    Matrix,
     MVN,
     officer,
     openxlsx,

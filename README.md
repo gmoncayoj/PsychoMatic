@@ -1,4 +1,4 @@
-# ⚡PsychoMatic
+# PsychoMatic
 
 <img width="1536" height="1024" alt="Package image" src="https://github.com/user-attachments/assets/77d9c2d8-31b8-4680-961b-5f260a71e85f" />
 
@@ -6,7 +6,7 @@
 
 `PsychoMatic` is an R package that automates psychometric workflows using SEM-based procedures and literature-informed heuristics. It covers descriptives, EFA, CFA, reliability, measurement invariance, and alignment, with flexible settings, bilingual reporting, and APA 7–style references to support analytical decisions.
 
-## 🧠 What PsychoMatic can do?
+## What PsychoMatic can do?
 
 PsychoMatic makes the best decisions for you so you can run your analyses with confidence!  
 However, you can also customize it according to your own specifications; in any case, it will provide you with the final report in the language of your choice. It was initially designed to promote its use in Spanish, but since most of the literature worldwide is in English, it is also capable of providing the report for each analysis in that language.
@@ -19,18 +19,18 @@ However, you can also customize it according to your own specifications; in any 
 | Invariance | `factorial_invariance_auto()` |
 | Alignment | `inv_align_auto()` |
 
-## 🚧 Development status
+## Development status
 
 PsychoMatic is currently in active development and is open to suggestions for improvement.
 
-## ⚙️ Installation
+## Installation
 
 ```r
 install.packages("remotes")
 remotes::install_github("gmoncayoj/PsychoMatic")
 ```
 
-## 📊 Example of univariate descriptive analysis of items
+## Example of univariate descriptive analysis of items
 
 ```r
 
@@ -51,7 +51,7 @@ desc_auto(base, report = TRUE, language = "eng")
 
 Using `desc_auto()`, you can calculate the mean, standard deviation, skewness, kurtosis, and response rate per item.
 
-## 🔍 Example of exploratory factor analysis + reliability
+## Example of exploratory factor analysis + reliability
 
 ```r
 library(PsychoMatic)
@@ -89,7 +89,7 @@ exportar_efa(result, formato = "word", archivo = "results_afe")
 | `archivo` | Optional base name for exported file(s) | `NULL` |
 | `language` | Report language: `"esp"` (Spanish) or `"eng"` (English) | `"esp"` |
 
-## 📐 Example of confirmatory factor analysis + reliability
+## Example of confirmatory factor analysis + reliability
 
 ```r
 
@@ -126,7 +126,7 @@ result <- cfa_auto(data = data, model = model)
 print(result)
 ```
 
-💡 PsychoMatic can automatically detect which model you are about to run. If it detects a second-order model, it will report the higher-order omega reliability. If it detects a two-factor model, it will also calculate the hierarchical omega, ECV, and PUC indices, and provide you with a final interpretation of the strength of the general factor!
+- PsychoMatic can automatically detect which model you are about to run. If it detects a second-order model, it will report the higher-order omega reliability. If it detects a two-factor model, it will also calculate the hierarchical omega, ECV, and PUC indices, and provide you with a final interpretation of the strength of the general factor!
 
 ### Main arguments
 
@@ -139,7 +139,7 @@ print(result)
 | `mi_threshold` | Minimum threshold for reporting modification indices | `10` |
 | `language` | Report language: `"esp"` or `"eng"` | `"esp"` |
 
-## ⚖️ Example of factorial invariance
+## Example of factorial invariance
 
 ```r
 
@@ -187,7 +187,7 @@ result <- factorial_invariance_auto(
 
 ```
 
-💡 When `estimator` is set to “auto”, the function automatically selects between WLSMV, ML, and MLR based on the number of response categories and multivariate normality (Mardia's test).
+- When `estimator` is set to “auto”, the function automatically selects between WLSMV, ML, and MLR based on the number of response categories and multivariate normality (Mardia's test).
 
 ### Main arguments
 
@@ -201,7 +201,7 @@ result <- factorial_invariance_auto(
 | `ordered` | Override ordinal treatment: `TRUE`, `FALSE`, or `NULL` (auto-detected from data) | `NULL` |
 | `report` | Export to Excel: `FALSE` (none), `TRUE` (default filename), or a custom file path string | `FALSE` |
 
-## 🎯 Example of alignment invariance
+## Example of alignment invariance
 
 ```r
 
@@ -256,12 +256,12 @@ print(res)
 | `config_args` | Named list of additional arguments passed to `sirt::invariance_alignment_cfa_config()` | `list()` |
 | `alignment_args` | Named list of additional arguments passed to `sirt::invariance.alignment()` | `list()` |
 
-## 👤 Author
+## Author
 
-Jose Gamarra Moncayo  
+Jose Gamarra-Moncayo  
 Email: gamarramoncayoj@gmail.com  
 Please feel free to contact the author to offer suggestions and/or report any bugs in the package.
 
-## 📄 License
+## License
 
 MIT
