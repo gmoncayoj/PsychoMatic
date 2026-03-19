@@ -2,7 +2,7 @@
 
 <img width="1536" height="1024" alt="Package image" src="https://github.com/user-attachments/assets/77d9c2d8-31b8-4680-961b-5f260a71e85f" />
 
-### 🚀 Automated psychometric analysis in R
+### Automated psychometric analysis in R
 
 `PsychoMatic` is an R package that automates psychometric workflows using SEM-based procedures and literature-informed heuristics. It covers descriptives, EFA, CFA, reliability, measurement invariance, and alignment, with flexible settings, bilingual reporting, and APA 7–style references to support analytical decisions.
 
