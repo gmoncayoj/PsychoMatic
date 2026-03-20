@@ -2,27 +2,27 @@
 # FUNCION PRINCIPAL
 # =============================================================================
 
-#' AFC automatizado con reporte psicometrico
+#' Automated CFA with psychometric reporting
 #'
-#' Ejecuta un analisis factorial confirmatorio con seleccion automatica del
-#' estimador, evaluacion de normalidad multivariante, indices de ajuste,
-#' confiabilidad y sugerencias de reespecificacion.
+#' Runs a confirmatory factor analysis with heuristic estimator selection,
+#' multivariate normality diagnostics, fit indices, reliability estimates, and
+#' model respecification suggestions.
 #'
-#' @param data Data frame con las variables observadas.
-#' @param model Modelo en sintaxis `lavaan`.
-#' @param ordered Vector opcional con los items tratados como ordinales.
-#' @param estimator Estimador opcional. Si es `NULL`, la funcion selecciona uno.
-#' @param std.lv Indica si las variables latentes deben estandarizarse.
-#' @param mi_threshold Umbral minimo para reportar indices de modificacion.
-#' @param n_mi Numero maximo de indices de modificacion a mostrar.
-#' @param alpha_norm Nivel alfa usado en la evaluacion de normalidad.
-#' @param language Idioma del reporte: `"esp"` o `"eng"`.
+#' @param data Data frame containing the observed variables.
+#' @param model Model syntax written for `lavaan`.
+#' @param ordered Optional vector indicating which items should be treated as ordinal.
+#' @param estimator Optional estimator. If `NULL`, the function selects one automatically.
+#' @param std.lv Whether latent variables should be standardized.
+#' @param mi_threshold Minimum threshold for reporting modification indices.
+#' @param n_mi Maximum number of modification indices to display.
+#' @param alpha_norm Alpha level used when evaluating multivariate normality.
+#' @param language Report language: `"esp"` or `"eng"`.
 #'
-#' @return Objeto de clase `cfa_auto`.
+#' @return Object of class `cfa_auto`.
 #'
 #' @examples
-#' # modelo <- "F1 =~ i1 + i2 + i3"
-#' # resultado <- cfa_auto(mi_datos, modelo)
+#' # model <- "F1 =~ i1 + i2 + i3"
+#' # result <- cfa_auto(my_data, model)
 #'
 #' @export
 cfa_auto <- function(data,
@@ -373,7 +373,7 @@ cfa_auto <- function(data,
         "chisq", "df", "pvalue", "chisq_ratio", "cfi", "tli",
         "rmsea", "rmsea.ci.lower", "rmsea.ci.upper", "rmsea.pvalue", "srmr"
       ),
-      Indice = c(
+      Index = c(
         .fit_index_label("chisq", p_chisq$variant, language),
         .fit_index_base_label("df", language),
         .fit_index_label("pvalue", p_pval$variant, language),
@@ -386,7 +386,7 @@ cfa_auto <- function(data,
         .fit_index_label("rmsea.pvalue", p_rmsea_p$variant, language),
         .fit_index_base_label("srmr", language)
       ),
-      Valor = c(
+      Value = c(
         p_chisq$value, p_df$value, p_pval$value, chisq_ratio,
         p_cfi$value, p_tli$value,
         p_rmsea$value, p_rmsea_lo$value, p_rmsea_hi$value, p_rmsea_p$value,
@@ -396,26 +396,32 @@ cfa_auto <- function(data,
     )
 
     # Evaluar ajuste
-    fit_summary$Evaluacion <- ""
-    fit_summary$Evaluacion[5] <-
-      .evaluar_fi(fit_summary$Valor[5], 0.95, 0.90, ">=", language)
-    fit_summary$Evaluacion[6] <-
-      .evaluar_fi(fit_summary$Valor[6], 0.95, 0.90, ">=", language)
-    fit_summary$Evaluacion[7] <-
-      .evaluar_fi(fit_summary$Valor[7], 0.06, 0.08, "<=", language)
-    fit_summary$Evaluacion[11] <-
-      .evaluar_fi(fit_summary$Valor[11], 0.06, 0.08, "<=", language)
-    fit_summary$Evaluacion[4] <-
-      .evaluar_fi(fit_summary$Valor[4], 3, 5, "<=", language)
+    fit_summary$Evaluation <- ""
+    fit_summary$Evaluation[5] <-
+      .evaluar_fi(fit_summary$Value[5], 0.95, 0.90, ">=", language)
+    fit_summary$Evaluation[6] <-
+      .evaluar_fi(fit_summary$Value[6], 0.95, 0.90, ">=", language)
+    fit_summary$Evaluation[7] <-
+      .evaluar_fi(fit_summary$Value[7], 0.06, 0.08, "<=", language)
+    fit_summary$Evaluation[11] <-
+      .evaluar_fi(fit_summary$Value[11], 0.06, 0.08, "<=", language)
+    fit_summary$Evaluation[4] <-
+      .evaluar_fi(fit_summary$Value[4], 3, 5, "<=", language)
+    fit_summary$Indice <- fit_summary$Index
+    fit_summary$Valor <- fit_summary$Value
+    fit_summary$Evaluacion <- fit_summary$Evaluation
 
   } else {
     fit_summary <- data.frame(
       Metric = "error",
-      Indice = .fit_index_base_label("error", language),
-      Valor = NA,
-      Evaluacion = if (is_english) "Not available" else "No disponible",
+      Index = .fit_index_base_label("error", language),
+      Value = NA,
+      Evaluation = if (is_english) "Not available" else "No disponible",
       stringsAsFactors = FALSE
     )
+    fit_summary$Indice <- fit_summary$Index
+    fit_summary$Valor <- fit_summary$Value
+    fit_summary$Evaluacion <- fit_summary$Evaluation
     fi_variant_note <- if (is_english) "Not available" else "No disponible"
   }
 
@@ -426,16 +432,21 @@ cfa_auto <- function(data,
   loadings_df <- std_sol[std_sol$op == "=~",
                          c("lhs", "rhs", "est.std", "se", "z", "pvalue",
                            "ci.lower", "ci.upper")]
-  names(loadings_df) <- c("Factor", "Item", "Lambda", "SE", "z", "p",
-                           "IC_inf", "IC_sup")
+  names(loadings_df) <- c("Factor", "Item", "Loading", "SE", "z", "p_value",
+                          "CI_lower", "CI_upper")
 
   # Flags de advertencia
-  loadings_df$Alerta <- ""
-  loadings_df$Alerta[abs(loadings_df$Lambda) > 1.0]  <- "*** HEYWOOD"
-  loadings_df$Alerta[abs(loadings_df$Lambda) < 0.20 &
-                     loadings_df$Alerta == ""]         <- if (is_english) "** Very low (<.20)" else "** Muy baja (<.20)"
-  loadings_df$Alerta[abs(loadings_df$Lambda) < 0.30 &
-                     loadings_df$Alerta == ""]         <- if (is_english) "* Low (<.30)" else "* Baja (<.30)"
+  loadings_df$Alert <- ""
+  loadings_df$Alert[abs(loadings_df$Loading) > 1.0]  <- "*** HEYWOOD"
+  loadings_df$Alert[abs(loadings_df$Loading) < 0.20 &
+                    loadings_df$Alert == ""]         <- if (is_english) "** Very low (<.20)" else "** Muy baja (<.20)"
+  loadings_df$Alert[abs(loadings_df$Loading) < 0.30 &
+                    loadings_df$Alert == ""]         <- if (is_english) "* Low (<.30)" else "* Baja (<.30)"
+  loadings_df$Lambda <- loadings_df$Loading
+  loadings_df$p <- loadings_df$p_value
+  loadings_df$IC_inf <- loadings_df$CI_lower
+  loadings_df$IC_sup <- loadings_df$CI_upper
+  loadings_df$Alerta <- loadings_df$Alert
 
   # Solo filas con items observados (excluir segundo orden -> primer orden)
   loadings_obs <- loadings_df[loadings_df$Item %in% observed_items, ]
@@ -458,13 +469,16 @@ cfa_auto <- function(data,
                          std_sol$rhs %in% factors,
                          c("lhs", "rhs", "est.std", "se", "z", "pvalue")]
     if (nrow(corr_rows) > 0) {
-      names(corr_rows) <- c("Factor1", "Factor2", "r", "SE", "z", "p")
-      corr_rows$Alerta <- ""
-      corr_rows$Alerta[abs(corr_rows$r) > 0.85] <- if (is_english) {
+      names(corr_rows) <- c("Factor1", "Factor2", "Correlation", "SE", "z", "p_value")
+      corr_rows$Alert <- ""
+      corr_rows$Alert[abs(corr_rows$Correlation) > 0.85] <- if (is_english) {
         "Discriminant validity?"
       } else {
         "Validez discriminante?"
       }
+      corr_rows$r <- corr_rows$Correlation
+      corr_rows$p <- corr_rows$p_value
+      corr_rows$Alerta <- corr_rows$Alert
       factor_corr_df <- corr_rows
     }
   }
@@ -474,7 +488,11 @@ cfa_auto <- function(data,
                        std_sol$lhs %in% second_order_factors,
                        c("lhs", "rhs", "est.std", "se", "z", "pvalue")]
     if (nrow(so_rows) > 0) {
-      names(so_rows) <- c("Factor_SO", "Factor_PO", "Lambda", "SE", "z", "p")
+      names(so_rows) <- c("HigherOrderFactor", "LowerOrderFactor", "Loading", "SE", "z", "p_value")
+      so_rows$Factor_SO <- so_rows$HigherOrderFactor
+      so_rows$Factor_PO <- so_rows$LowerOrderFactor
+      so_rows$Lambda <- so_rows$Loading
+      so_rows$p <- so_rows$p_value
     }
   } else {
     so_rows <- NULL
@@ -537,7 +555,7 @@ cfa_auto <- function(data,
   }
 
   # Cargas > 1
-  heywood_loads <- loadings_df[abs(loadings_df$Lambda) > 1.0, ]
+  heywood_loads <- loadings_df[abs(loadings_df$Loading) > 1.0, ]
   if (nrow(heywood_loads) > 0) {
     warnings_list <- c(warnings_list,
       if (is_english) {
@@ -550,7 +568,7 @@ cfa_auto <- function(data,
   }
 
   # Cargas muy bajas
-  low_loads <- loadings_obs[abs(loadings_obs$Lambda) < 0.30, ]
+  low_loads <- loadings_obs[abs(loadings_obs$Loading) < 0.30, ]
   if (nrow(low_loads) > 0) {
     warnings_list <- c(warnings_list,
       if (is_english) {
@@ -598,16 +616,22 @@ cfa_auto <- function(data,
                             p_skew = mardia_p_skew, p_kurt = mardia_p_kurt),
     # Resultados
     fit_indices      = fit_summary,
+    fit_summary      = fit_summary,
     fi_variant_note  = fi_variant_note,
     all_fit_measures = all_fi,
     loadings         = loadings_obs,
+    factor_loadings  = loadings_obs,
     loadings_ho      = loadings_ho,
+    higher_order_loadings = loadings_ho,
     r_squared        = r2,
     factor_correlations = factor_corr_df,
+    factor_correlation_table = factor_corr_df,
     reliability      = reliability_results,
     modification_indices = mi_df,
     respecifications = respec,
-    warnings         = warnings_list
+    respecification_suggestions = respec,
+    warnings         = warnings_list,
+    warnings_list    = warnings_list
   )
 
   class(results) <- "cfa_auto"
@@ -1077,12 +1101,12 @@ cfa_auto <- function(data,
         row$lhs %in% items && row$rhs %in% items
       }))
       respec[[length(respec) + 1]] <- list(
-        tipo    = if (is_english) "Residual covariance" else "Covarianza residual",
-        sintaxis = paste0(row$lhs, " ~~ ", row$rhs),
+        type    = if (is_english) "Residual covariance" else "Covarianza residual",
+        syntax = paste0(row$lhs, " ~~ ", row$rhs),
         mi      = round(row$mi, 2),
         epc     = round(row$epc, 3),
-        mismo_factor = same_f,
-        nota    = if (same_f) {
+        same_factor = same_f,
+        note    = if (same_f) {
           if (is_english) {
             "Same factor: consider only if there is theoretical justification (similar wording, method effects, etc.)"
           } else {
@@ -1096,20 +1120,28 @@ cfa_auto <- function(data,
           }
         }
       )
+      respec[[length(respec)]]$tipo <- respec[[length(respec)]]$type
+      respec[[length(respec)]]$sintaxis <- respec[[length(respec)]]$syntax
+      respec[[length(respec)]]$mismo_factor <- respec[[length(respec)]]$same_factor
+      respec[[length(respec)]]$nota <- respec[[length(respec)]]$note
 
     } else if (row$op == "=~") {
       respec[[length(respec) + 1]] <- list(
-        tipo    = if (is_english) "Cross-loading" else "Carga cruzada",
-        sintaxis = paste0(row$lhs, " =~ ", row$rhs),
+        type    = if (is_english) "Cross-loading" else "Carga cruzada",
+        syntax = paste0(row$lhs, " =~ ", row$rhs),
         mi      = round(row$mi, 2),
         epc     = round(row$epc, 3),
-        mismo_factor = FALSE,
-        nota    = if (is_english) {
+        same_factor = FALSE,
+        note    = if (is_english) {
           "Potential cross-loading: review whether the item content justifies belonging to this factor"
         } else {
           "Carga cruzada potencial: revisar si el contenido del item justifica pertenencia a este factor"
         }
       )
+      respec[[length(respec)]]$tipo <- respec[[length(respec)]]$type
+      respec[[length(respec)]]$sintaxis <- respec[[length(respec)]]$syntax
+      respec[[length(respec)]]$mismo_factor <- respec[[length(respec)]]$same_factor
+      respec[[length(respec)]]$nota <- respec[[length(respec)]]$note
     }
   }
 
@@ -1390,11 +1422,11 @@ cfa_auto <- function(data,
   invisible(x)
 }
 
-#' Imprime un objeto `cfa_auto`
+#' Print a `cfa_auto` object
 #'
-#' @param x Objeto devuelto por `cfa_auto()`.
-#' @param digits Numero de decimales del reporte.
-#' @param ... Argumentos adicionales no usados.
+#' @param x Object returned by `cfa_auto()`.
+#' @param digits Number of decimal places shown in the printed report.
+#' @param ... Additional unused arguments.
 #'
 #' @rdname cfa_auto
 #' @method print cfa_auto
@@ -1732,4 +1764,205 @@ print.cfa_auto <- function(x, digits = 3, ...) {
   cat(sep, "\n\n", sep = "")
 
   invisible(x)
+}
+
+.cfa_respecifications_to_df <- function(x) {
+  respec <- if (!is.null(x$respecification_suggestions)) {
+    x$respecification_suggestions
+  } else {
+    x$respecifications
+  }
+
+  if (is.null(respec) || length(respec) == 0) {
+    return(data.frame())
+  }
+
+  do.call(
+    rbind,
+    lapply(respec, function(item) {
+      data.frame(
+        Type = if (!is.null(item$type)) item$type else item$tipo,
+        Syntax = if (!is.null(item$syntax)) item$syntax else item$sintaxis,
+        MI = item$mi,
+        EPC = item$epc,
+        SameFactor = if (!is.null(item$same_factor)) item$same_factor else item$mismo_factor,
+        Note = if (!is.null(item$note)) item$note else item$nota,
+        stringsAsFactors = FALSE
+      )
+    })
+  )
+}
+
+.cfa_export_excel <- function(result, file_name) {
+  wb <- createWorkbook()
+  fit_df <- if (!is.null(result$fit_summary)) result$fit_summary else result$fit_indices
+  if (!"Index" %in% names(fit_df) && "Indice" %in% names(fit_df)) fit_df$Index <- fit_df$Indice
+  if (!"Value" %in% names(fit_df) && "Valor" %in% names(fit_df)) fit_df$Value <- fit_df$Valor
+  if (!"Evaluation" %in% names(fit_df) && "Evaluacion" %in% names(fit_df)) fit_df$Evaluation <- fit_df$Evaluacion
+
+  loadings_df <- if (!is.null(result$factor_loadings)) result$factor_loadings else result$loadings
+  if (!"Loading" %in% names(loadings_df) && "Lambda" %in% names(loadings_df)) loadings_df$Loading <- loadings_df$Lambda
+  if (!"p_value" %in% names(loadings_df) && "p" %in% names(loadings_df)) loadings_df$p_value <- loadings_df$p
+  if (!"CI_lower" %in% names(loadings_df) && "IC_inf" %in% names(loadings_df)) loadings_df$CI_lower <- loadings_df$IC_inf
+  if (!"CI_upper" %in% names(loadings_df) && "IC_sup" %in% names(loadings_df)) loadings_df$CI_upper <- loadings_df$IC_sup
+  if (!"Alert" %in% names(loadings_df) && "Alerta" %in% names(loadings_df)) loadings_df$Alert <- loadings_df$Alerta
+
+  higher_order_df <- if (!is.null(result$higher_order_loadings)) result$higher_order_loadings else result$loadings_ho
+  if (!is.null(higher_order_df) && nrow(higher_order_df) > 0) {
+    if (!"HigherOrderFactor" %in% names(higher_order_df) && "Factor_SO" %in% names(higher_order_df)) higher_order_df$HigherOrderFactor <- higher_order_df$Factor_SO
+    if (!"LowerOrderFactor" %in% names(higher_order_df) && "Factor_PO" %in% names(higher_order_df)) higher_order_df$LowerOrderFactor <- higher_order_df$Factor_PO
+    if (!"Loading" %in% names(higher_order_df) && "Lambda" %in% names(higher_order_df)) higher_order_df$Loading <- higher_order_df$Lambda
+    if (!"p_value" %in% names(higher_order_df) && "p" %in% names(higher_order_df)) higher_order_df$p_value <- higher_order_df$p
+  }
+
+  corr_df <- if (!is.null(result$factor_correlation_table)) result$factor_correlation_table else result$factor_correlations
+  if (!is.null(corr_df) && nrow(corr_df) > 0) {
+    if (!"Correlation" %in% names(corr_df) && "r" %in% names(corr_df)) corr_df$Correlation <- corr_df$r
+    if (!"p_value" %in% names(corr_df) && "p" %in% names(corr_df)) corr_df$p_value <- corr_df$p
+    if (!"Alert" %in% names(corr_df) && "Alerta" %in% names(corr_df)) corr_df$Alert <- corr_df$Alerta
+  }
+
+  warnings_vec <- if (!is.null(result$warnings_list)) result$warnings_list else result$warnings
+
+  summary_df <- data.frame(
+    Element = c(
+      "Model type", "Factors", "Observed items", "Sample size",
+      "Complete cases", "Missing rows (%)", "Estimator",
+      "Estimator rationale", "Converged", "Language"
+    ),
+    Value = c(
+      result$model_type,
+      paste(result$factors, collapse = ", "),
+      result$n_items,
+      result$n,
+      result$n_complete,
+      result$pct_missing,
+      result$estimator,
+      result$estimator_reason,
+      result$converged,
+      result$language
+    ),
+    stringsAsFactors = FALSE
+  )
+
+  addWorksheet(wb, "Model Summary")
+  writeData(wb, "Model Summary", summary_df)
+
+  addWorksheet(wb, "Fit Indices")
+  writeData(wb, "Fit Indices", fit_df[, c("Metric", "Index", "Value", "Evaluation"), drop = FALSE])
+
+  addWorksheet(wb, "Loadings")
+  writeData(
+    wb,
+    "Loadings",
+    loadings_df[, c("Factor", "Item", "Loading", "SE", "z", "p_value", "CI_lower", "CI_upper", "Alert"), drop = FALSE]
+  )
+
+  if (!is.null(higher_order_df) && nrow(higher_order_df) > 0) {
+    addWorksheet(wb, "Higher Order")
+    writeData(
+      wb,
+      "Higher Order",
+      higher_order_df[, c("HigherOrderFactor", "LowerOrderFactor", "Loading", "SE", "z", "p_value"), drop = FALSE]
+    )
+  }
+
+  if (!is.null(corr_df) && nrow(corr_df) > 0) {
+    addWorksheet(wb, "Factor Corr")
+    writeData(
+      wb,
+      "Factor Corr",
+      corr_df[, c("Factor1", "Factor2", "Correlation", "SE", "z", "p_value", "Alert"), drop = FALSE]
+    )
+  }
+
+  if (!is.null(result$modification_indices) && nrow(result$modification_indices) > 0) {
+    addWorksheet(wb, "Mod Indices")
+    writeData(wb, "Mod Indices", result$modification_indices)
+  }
+
+  respec_df <- .cfa_respecifications_to_df(result)
+  if (nrow(respec_df) > 0) {
+    addWorksheet(wb, "Respec")
+    writeData(wb, "Respec", respec_df)
+  }
+
+  if (length(warnings_vec) > 0) {
+    addWorksheet(wb, "Warnings")
+    writeData(wb, "Warnings", data.frame(Warning = warnings_vec, stringsAsFactors = FALSE))
+  }
+
+  if (!grepl("\\.xlsx$", file_name, ignore.case = TRUE)) {
+    file_name <- paste0(file_name, ".xlsx")
+  }
+
+  saveWorkbook(wb, file_name, overwrite = TRUE)
+  invisible(normalizePath(file_name))
+}
+
+.cfa_export_word <- function(result, file_name, digits = 3) {
+  doc <- read_docx()
+  report_lines <- capture.output(print(result, digits = digits))
+
+  for (line in report_lines) {
+    doc <- body_add_par(doc, if (nzchar(line)) line else " ", style = "Normal")
+  }
+
+  if (!grepl("\\.docx$", file_name, ignore.case = TRUE)) {
+    file_name <- paste0(file_name, ".docx")
+  }
+
+  print(doc, target = file_name)
+  invisible(normalizePath(file_name))
+}
+
+#' Export CFA results to Excel or Word
+#'
+#' @param result Object of class `"cfa_auto"` returned by `cfa_auto()`.
+#' @param format `"excel"` or `"word"` (you can provide both).
+#' @param file_name Optional base file name without extension. If `NULL`, a
+#'   timestamped name is generated automatically.
+#' @param digits Number of decimal places used when exporting the Word report.
+#'
+#' @return The input `result`, invisibly.
+#'
+#' @examples
+#' # export_cfa(result, format = "excel")
+#' # export_cfa(result, format = "word")
+#'
+#' @export
+export_cfa <- function(result, format = c("excel", "word"), file_name = NULL, digits = 3) {
+  if (!inherits(result, "cfa_auto")) {
+    stop("'result' must be an object of class 'cfa_auto'.", call. = FALSE)
+  }
+
+  format <- match.arg(format, c("excel", "word"), several.ok = TRUE)
+
+  if (is.null(file_name)) {
+    file_name <- paste0("CFA_Results_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+  }
+
+  for (fmt in format) {
+    if (fmt == "excel") {
+      .cfa_export_excel(result, file_name)
+    } else {
+      .cfa_export_word(result, file_name, digits = digits)
+    }
+  }
+
+  invisible(result)
+}
+
+# Internal legacy alias for `export_cfa()`
+#'
+#' @param resultado Deprecated. Use `result`.
+#' @param formato Deprecated. Use `format`.
+#' @param archivo Deprecated. Use `file_name`.
+#' @param digits Number of decimal places used when exporting the Word report.
+#'
+#' @return The input `resultado`, invisibly.
+#' @noRd
+exportar_cfa <- function(resultado, formato = c("excel", "word"), archivo = NULL, digits = 3) {
+  warning("`exportar_cfa()` is deprecated; use `export_cfa()` instead.", call. = FALSE)
+  export_cfa(result = resultado, format = formato, file_name = archivo, digits = digits)
 }

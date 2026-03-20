@@ -3,7 +3,7 @@
 \name{cfa_auto}
 \alias{cfa_auto}
 \alias{print.cfa_auto}
-\title{AFC automatizado con reporte psicometrico}
+\title{Automated CFA with psychometric reporting}
 \usage{
 cfa_auto(
   data,
@@ -20,40 +20,40 @@ cfa_auto(
 \method{print}{cfa_auto}(x, digits = 3, ...)
 }
 \arguments{
-\item{data}{Data frame con las variables observadas.}
+\item{data}{Data frame containing the observed variables.}
 
-\item{model}{Modelo en sintaxis \code{lavaan}.}
+\item{model}{Model syntax written for \code{lavaan}.}
 
-\item{ordered}{Vector opcional con los items tratados como ordinales.}
+\item{ordered}{Optional vector indicating which items should be treated as ordinal.}
 
-\item{estimator}{Estimador opcional. Si es \code{NULL}, la funcion selecciona uno.}
+\item{estimator}{Optional estimator. If \code{NULL}, the function selects one automatically.}
 
-\item{std.lv}{Indica si las variables latentes deben estandarizarse.}
+\item{std.lv}{Whether latent variables should be standardized.}
 
-\item{mi_threshold}{Umbral minimo para reportar indices de modificacion.}
+\item{mi_threshold}{Minimum threshold for reporting modification indices.}
 
-\item{n_mi}{Numero maximo de indices de modificacion a mostrar.}
+\item{n_mi}{Maximum number of modification indices to display.}
 
-\item{alpha_norm}{Nivel alfa usado en la evaluacion de normalidad.}
+\item{alpha_norm}{Alpha level used when evaluating multivariate normality.}
 
-\item{language}{Idioma del reporte: \code{"esp"} o \code{"eng"}.}
+\item{language}{Report language: \code{"esp"} or \code{"eng"}.}
 
-\item{x}{Objeto devuelto por \code{cfa_auto()}.}
+\item{x}{Object returned by \code{cfa_auto()}.}
 
-\item{digits}{Numero de decimales del reporte.}
+\item{digits}{Number of decimal places shown in the printed report.}
 
-\item{...}{Argumentos adicionales no usados.}
+\item{...}{Additional unused arguments.}
 }
 \value{
-Objeto de clase \code{cfa_auto}.
+Object of class \code{cfa_auto}.
 }
 \description{
-Ejecuta un analisis factorial confirmatorio con seleccion automatica del
-estimador, evaluacion de normalidad multivariante, indices de ajuste,
-confiabilidad y sugerencias de reespecificacion.
+Runs a confirmatory factor analysis with heuristic estimator selection,
+multivariate normality diagnostics, fit indices, reliability estimates, and
+model respecification suggestions.
 }
 \examples{
-# modelo <- "F1 =~ i1 + i2 + i3"
-# resultado <- cfa_auto(mi_datos, modelo)
+# model <- "F1 =~ i1 + i2 + i3"
+# result <- cfa_auto(my_data, model)
 
 }

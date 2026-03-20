@@ -72,6 +72,29 @@
   stop("Argument 'language' must be one of: 'esp' or 'eng'.")
 }
 
+.efa_warn_deprecated_arg <- function(old_name, new_name) {
+  warning(
+    sprintf("Argument `%s` is deprecated; use `%s` instead.", old_name, new_name),
+    call. = FALSE
+  )
+}
+
+.efa_normalize_rotation <- function(rotation = "oblique") {
+  if (is.null(rotation) || length(rotation) == 0) return("oblique")
+
+  rotation <- tolower(trimws(as.character(rotation[1])))
+
+  if (rotation %in% c("oblique", "oblimin", "oblicua")) {
+    return("oblique")
+  }
+
+  if (rotation %in% c("orthogonal", "varimax", "ortogonal")) {
+    return("orthogonal")
+  }
+
+  stop("Argument 'rotation' must be one of: 'oblique' or 'orthogonal'.")
+}
+
 # Etiquetas y textos del reporte por consola
 .efa_labels <- function(language = "esp") {
   language <- .efa_normalize_language(language)
@@ -80,7 +103,7 @@
     return(list(
       required_psych = "Package 'psych' is required. Install with: install.packages('psych')",
       required_gpa = "Package 'GPArotation' is required. Install with: install.packages('GPArotation')",
-      invalid_data = "'datos' must be a data frame or a matrix.",
+      invalid_data = "'data' must be a data frame or a matrix.",
       need_numeric = "At least 3 numeric variables are required.",
       excluded_non_numeric = "NOTE: Excluded",
       non_numeric_cols = "non-numeric column(s).",
@@ -178,7 +201,7 @@
   list(
     required_psych = "Paquete 'psych' requerido. Instale con: install.packages('psych')",
     required_gpa = "Paquete 'GPArotation' requerido. Instale con: install.packages('GPArotation')",
-    invalid_data = "'datos' debe ser un data frame o una matriz.",
+    invalid_data = "'data' debe ser un data frame o una matriz.",
     need_numeric = "Se necesitan al menos 3 variables numericas.",
     excluded_non_numeric = "NOTA: Se excluyeron",
     non_numeric_cols = "columna(s) no numerica(s).",
@@ -600,39 +623,133 @@
 #' Realiza un AFE automatizado con seleccion de estimador, analisis paralelo,
 #' rotacion y eliminacion iterativa de items problematicos.
 #'
-#' @param datos Data frame o matriz con los items (variables numericas).
-#' @param rotacion Tipo de rotacion: "oblicua" (oblimin) u "ortogonal" (varimax).
-#' @param carga_min Carga factorial minima aceptable (default: 0.30).
-#' @param comunalidad_min Comunalidad minima aceptable (default: 0.30).
-#' @param dif_cargas_cruzadas Diferencia minima entre las dos cargas mas altas
+#' @param data Data frame o matriz con los items (variables numericas).
+#' @param rotation Tipo de rotacion: `"oblique"` (oblimin) u `"orthogonal"` (varimax).
+#' @param min_loading Carga factorial minima aceptable (default: 0.30).
+#' @param min_communality Comunalidad minima aceptable (default: 0.30).
+#' @param min_cross_loading_diff Diferencia minima entre las dos cargas mas altas
 #'        de un item para no considerarlo carga cruzada (default: 0.15).
 #' @param max_iter Maximo de iteraciones de eliminacion (default: 20).
 #' @param verbose Imprimir reporte en consola (default: TRUE).
-#' @param exportar Formato de exportacion opcional usado por la funcion.
-#' @param archivo Nombre base opcional para archivos exportados.
+#' @param export_format Formato de exportacion opcional usado por la funcion.
+#' @param file_name Nombre base opcional para archivos exportados.
 #' @param language Idioma del reporte: "esp" o "eng" (default: "esp").
+#' @param ... Argumentos legados en espanol conservados temporalmente por
+#'   compatibilidad (`datos`, `rotacion`, `carga_min`, `comunalidad_min`,
+#'   `dif_cargas_cruzadas`, `exportar`, `archivo`).
 #'
 #' @return Lista (clase "efa_auto") con todos los resultados del analisis.
 #'
 #' @examples
-#' # resultado <- efa_auto(mi_datos, rotacion = "oblicua")
-#' # resultado <- efa_auto(mi_datos, rotacion = "ortogonal")
-#' # resultado <- efa_auto(mi_datos, rotacion = "oblicua", language = "eng")
+#' # result <- efa_auto(my_data, rotation = "oblique")
+#' # result <- efa_auto(my_data, rotation = "orthogonal")
+#' # result <- efa_auto(my_data, rotation = "oblique", language = "eng")
 #'
 #' @export
 
-efa_auto <- function(datos,
-                       rotacion = c("oblicua", "ortogonal"),
-                       carga_min = 0.30,
-                       comunalidad_min = 0.30,
-                       dif_cargas_cruzadas = 0.15,
-                       max_iter = 20,
-                       verbose = TRUE,
-                       exportar = NULL,
-                       archivo = NULL,
-                       language = "esp") {
+efa_auto <- function(data,
+                     rotation = c("oblique", "orthogonal"),
+                     min_loading = 0.30,
+                     min_communality = 0.30,
+                     min_cross_loading_diff = 0.15,
+                     max_iter = 20,
+                     verbose = TRUE,
+                     export_format = NULL,
+                     file_name = NULL,
+                     language = "esp",
+                     ...) {
+
+  data_missing <- missing(data)
+  rotation_missing <- missing(rotation)
+  min_loading_missing <- missing(min_loading)
+  min_communality_missing <- missing(min_communality)
+  min_cross_loading_diff_missing <- missing(min_cross_loading_diff)
+  export_format_missing <- missing(export_format)
+  file_name_missing <- missing(file_name)
+
+  legacy_args <- list(...)
+  legacy_names <- names(legacy_args)
+
+  if (length(legacy_args) > 0 && (is.null(legacy_names) || any(!nzchar(legacy_names)))) {
+    stop("All additional arguments passed to `efa_auto()` must be named.", call. = FALSE)
+  }
+
+  if ("datos" %in% legacy_names) {
+    if (!data_missing) {
+      stop("Use only one of `data` or deprecated `datos`.", call. = FALSE)
+    }
+    data <- legacy_args$datos
+    legacy_args$datos <- NULL
+    .efa_warn_deprecated_arg("datos", "data")
+  }
+
+  if ("rotacion" %in% legacy_names) {
+    if (!rotation_missing) {
+      stop("Use only one of `rotation` or deprecated `rotacion`.", call. = FALSE)
+    }
+    rotation <- legacy_args$rotacion
+    legacy_args$rotacion <- NULL
+    .efa_warn_deprecated_arg("rotacion", "rotation")
+  }
+
+  if ("carga_min" %in% legacy_names) {
+    if (!min_loading_missing) {
+      stop("Use only one of `min_loading` or deprecated `carga_min`.", call. = FALSE)
+    }
+    min_loading <- legacy_args$carga_min
+    legacy_args$carga_min <- NULL
+    .efa_warn_deprecated_arg("carga_min", "min_loading")
+  }
+
+  if ("comunalidad_min" %in% legacy_names) {
+    if (!min_communality_missing) {
+      stop("Use only one of `min_communality` or deprecated `comunalidad_min`.", call. = FALSE)
+    }
+    min_communality <- legacy_args$comunalidad_min
+    legacy_args$comunalidad_min <- NULL
+    .efa_warn_deprecated_arg("comunalidad_min", "min_communality")
+  }
+
+  if ("dif_cargas_cruzadas" %in% legacy_names) {
+    if (!min_cross_loading_diff_missing) {
+      stop("Use only one of `min_cross_loading_diff` or deprecated `dif_cargas_cruzadas`.", call. = FALSE)
+    }
+    min_cross_loading_diff <- legacy_args$dif_cargas_cruzadas
+    legacy_args$dif_cargas_cruzadas <- NULL
+    .efa_warn_deprecated_arg("dif_cargas_cruzadas", "min_cross_loading_diff")
+  }
+
+  if ("exportar" %in% legacy_names) {
+    if (!export_format_missing) {
+      stop("Use only one of `export_format` or deprecated `exportar`.", call. = FALSE)
+    }
+    export_format <- legacy_args$exportar
+    legacy_args$exportar <- NULL
+    .efa_warn_deprecated_arg("exportar", "export_format")
+  }
+
+  if ("archivo" %in% legacy_names) {
+    if (!file_name_missing) {
+      stop("Use only one of `file_name` or deprecated `archivo`.", call. = FALSE)
+    }
+    file_name <- legacy_args$archivo
+    legacy_args$archivo <- NULL
+    .efa_warn_deprecated_arg("archivo", "file_name")
+  }
+
+  if (data_missing && is.null(data)) {
+    stop("Argument `data` is required.", call. = FALSE)
+  }
+
+  if (length(legacy_args) > 0) {
+    stop(
+      sprintf("Unused argument(s): %s", paste(names(legacy_args), collapse = ", ")),
+      call. = FALSE
+    )
+  }
 
   language <- .efa_normalize_language(language)
+  rotation <- .efa_normalize_rotation(rotation)
   txt <- .efa_labels(language)
 
   if (!requireNamespace("psych", quietly = TRUE))
@@ -640,17 +757,16 @@ efa_auto <- function(datos,
   if (!requireNamespace("GPArotation", quietly = TRUE))
     stop(txt$required_gpa)
 
-  rotacion <- match.arg(rotacion)
   sep <- paste0(rep("=", 65), collapse = "")
-  rotacion_label <- ifelse(rotacion == "oblicua", txt$oblique, txt$orthogonal)
+  rotacion_label <- ifelse(rotation == "oblique", txt$oblique, txt$orthogonal)
 
   # ================================================================
   # 1. VALIDACION Y PREPARACION DE DATOS
   # ================================================================
-  if (!is.data.frame(datos) && !is.matrix(datos))
+  if (!is.data.frame(data) && !is.matrix(data))
     stop(txt$invalid_data)
 
-  datos <- as.data.frame(datos)
+  datos <- as.data.frame(data)
   cols_num <- sapply(datos, is.numeric)
 
   if (sum(cols_num) < 3)
@@ -808,7 +924,7 @@ efa_auto <- function(datos,
     tipo_rot <- "none"
     if (verbose) cat(txt$no_rotation)
   } else {
-    tipo_rot <- ifelse(rotacion == "oblicua", "oblimin", "varimax")
+    tipo_rot <- ifelse(rotation == "oblique", "oblimin", "varimax")
     if (verbose)
       cat(sprintf(txt$rotation_label, tipo_rot, rotacion_label))
   }
@@ -861,7 +977,7 @@ efa_auto <- function(datos,
           cat(sprintf(txt$factors_adjusted, n_factores, nf_new))
         n_factores <- nf_new
         tipo_rot <- if (n_factores == 1) "none" else
-          ifelse(rotacion == "oblicua", "oblimin", "varimax")
+          ifelse(rotation == "oblique", "oblimin", "varimax")
       }
     }
 
@@ -870,7 +986,7 @@ efa_auto <- function(datos,
       if (n_factores > 1) {
         n_factores <- max(1, floor(p_actual / 3))
         tipo_rot <- if (n_factores == 1) "none" else
-          ifelse(rotacion == "oblicua", "oblimin", "varimax")
+          ifelse(rotation == "oblique", "oblimin", "varimax")
         if (verbose)
           cat(txt$insufficient_items, n_factores, txt$factor_suffix)
       } else {
@@ -907,8 +1023,8 @@ efa_auto <- function(datos,
 
     # Evaluar items
     problemas <- .efa_evaluar_items(
-      cargas, comunalidades, carga_min,
-      comunalidad_min, dif_cargas_cruzadas, n_factores, language
+      cargas, comunalidades, min_loading,
+      min_communality, min_cross_loading_diff, n_factores, language
     )
 
     if (nrow(problemas) == 0) {
@@ -1020,13 +1136,13 @@ efa_auto <- function(datos,
     for (i in 1:nrow(cargas_print))
       for (j in 1:ncol(cargas_print))
         cargas_print[i, j] <- ifelse(
-          abs(cargas_final[i, j]) < carga_min,
+          abs(cargas_final[i, j]) < min_loading,
           NA_real_,
           round(cargas_final[i, j], 3)
         )
     cargas_print$h2 <- round(efa$communality[rownames(cargas_final)], 3)
     print(cargas_print, na.print = "   ")
-    cat(txt$loadings_note_left, carga_min, txt$loadings_note_right)
+    cat(txt$loadings_note_left, min_loading, txt$loadings_note_right)
 
     # --- Distribucion de items ---
     cat("\n", txt$distribution_title, "\n", sep = "")
@@ -1040,7 +1156,7 @@ efa_auto <- function(datos,
     }
 
     # --- Correlaciones entre factores ---
-    if (rotacion == "oblicua" && n_factores > 1 && !is.null(efa$Phi)) {
+    if (rotation == "oblique" && n_factores > 1 && !is.null(efa$Phi)) {
       cat("\n", txt$factor_corr_title, "\n", sep = "")
       print(round(efa$Phi, 3))
     }
@@ -1154,7 +1270,7 @@ efa_auto <- function(datos,
   # ================================================================
   sugerencias <- .efa_sugerencias(
     efa, distribucion, fiabilidad, kmo_final, bartlett_final,
-    n_factores, n, items_eliminados, carga_min, var_explicada, p, language
+    n_factores, n, items_eliminados, min_loading, var_explicada, p, language
   )
 
   if (verbose) {
@@ -1259,6 +1375,7 @@ efa_auto <- function(datos,
     language             = language,
     n_factores           = n_factores,
     estimador            = est,
+    rotation             = tipo_rot,
     rotacion             = tipo_rot,
     kmo_original         = kmo_original,
     kmo_final            = kmo_final,
@@ -1283,8 +1400,8 @@ efa_auto <- function(datos,
   class(resultado) <- "efa_auto"
 
   # Exportar si se solicito
-  if (!is.null(exportar)) {
-    exportar_efa(resultado, formato = exportar, archivo = archivo)
+  if (!is.null(export_format)) {
+    export_efa(resultado, format = export_format, file_name = file_name)
   }
 
   invisible(resultado)
@@ -1386,7 +1503,7 @@ efa_auto <- function(datos,
       as.character(res$n_factores),
       res$estimador$nombre,
       res$estimador$tipo_cor,
-      res$rotacion,
+      if (!is.null(res$rotation)) res$rotation else res$rotacion,
       "",
       "",
       sprintf("%.3f", res$kmo_final$MSA),
@@ -1790,7 +1907,8 @@ efa_auto <- function(datos,
       as.character(res$n), as.character(res$p_original),
       as.character(res$p_final), as.character(nrow(res$items_eliminados)),
       as.character(res$n_factores), res$estimador$nombre,
-      res$estimador$tipo_cor, res$rotacion
+      res$estimador$tipo_cor,
+      if (!is.null(res$rotation)) res$rotation else res$rotacion
     ),
     stringsAsFactors = FALSE
   )
@@ -2061,39 +2179,53 @@ efa_auto <- function(datos,
 #        FUNCION PUBLICA DE EXPORTACION
 # ============================================================
 
-#' Exportar resultados del AFE a Excel o Word
+#' Export EFA results to Excel or Word
 #'
-#' @param resultado Objeto de clase "efa_auto" retornado por efa_auto().
-#' @param formato "excel" o "word" (puede ser un vector con ambos).
-#' @param archivo Nombre del archivo (sin extension). Si es NULL, se genera
-#'        automaticamente con fecha y hora.
+#' @param result Object of class `"efa_auto"` returned by `efa_auto()`.
+#' @param format `"excel"` or `"word"` (you can provide both).
+#' @param file_name Optional base file name without extension. If `NULL`, a
+#'   timestamped name is generated automatically.
 #'
-#' @return El objeto `resultado`, invisiblemente.
+#' @return The input `result`, invisibly.
 #'
 #' @examples
-#' # exportar_efa(resultado, formato = "excel")
-#' # exportar_efa(resultado, formato = "word")
-#' # exportar_efa(resultado, formato = c("excel", "word"))
+#' # export_efa(result, format = "excel")
+#' # export_efa(result, format = "word")
+#' # export_efa(result, format = c("excel", "word"))
 #'
 #' @export
+export_efa <- function(result, format = c("excel", "word"), file_name = NULL) {
+  if (!inherits(result, "efa_auto")) {
+    stop("'result' must be an object of class 'efa_auto'.", call. = FALSE)
+  }
 
-exportar_efa <- function(resultado, formato = c("excel", "word"), archivo = NULL) {
-  if (!inherits(resultado, "efa_auto"))
-    stop("'resultado' debe ser un objeto de clase 'efa_auto'.")
+  format <- match.arg(format, c("excel", "word"), several.ok = TRUE)
 
-  formato <- match.arg(formato, c("excel", "word"), several.ok = TRUE)
+  if (is.null(file_name)) {
+    file_name <- paste0("EFA_Results_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+  }
 
-  if (is.null(archivo))
-    archivo <- paste0("AFE_Resultados_", format(Sys.time(), "%Y%m%d_%H%M%S"))
-
-  for (fmt in formato) {
+  for (fmt in format) {
     if (fmt == "excel") {
-      .efa_exportar_excel(resultado, archivo)
+      .efa_exportar_excel(result, file_name)
     } else {
-      .efa_exportar_word(resultado, archivo)
+      .efa_exportar_word(result, file_name)
     }
   }
 
-  invisible(resultado)
+  invisible(result)
+}
+
+# Internal legacy alias for `export_efa()`
+#'
+#' @param resultado Deprecated. Use `result`.
+#' @param formato Deprecated. Use `format`.
+#' @param archivo Deprecated. Use `file_name`.
+#'
+#' @return The input `resultado`, invisibly.
+#' @noRd
+exportar_efa <- function(resultado, formato = c("excel", "word"), archivo = NULL) {
+  warning("`exportar_efa()` is deprecated; use `export_efa()` instead.", call. = FALSE)
+  export_efa(result = resultado, format = formato, file_name = archivo)
 }
 

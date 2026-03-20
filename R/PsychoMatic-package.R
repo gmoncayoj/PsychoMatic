@@ -4,8 +4,9 @@
 #' exploratorio, analisis factorial confirmatorio e invarianza de medicion en
 #' flujos de trabajo pensados para R y RStudio.
 #'
-#' Funciones principales: `desc_auto()`, `efa_auto()`, `exportar_efa()`,
-#' `cfa_auto()`, `inv_align_auto()` y `factorial_invariance_auto()`.
+#' Funciones principales: `desc_auto()`, `efa_auto()`, `export_efa()`,
+#' `cfa_auto()`, `export_cfa()`, `inv_align_auto()` y
+#' `factorial_invariance_auto()`.
 #'
 #' @keywords internal
 #' @import flextable

@@ -33,27 +33,34 @@ test_that("desc_auto devuelve descriptivos para variables numericas", {
   expect_true(all(c("Item", "Mean", "SD", "Skewness", "Kurtosis") %in% names(res)))
 })
 
-test_that("efa_auto genera un resultado estructurado y exportar_efa crea Excel", {
+test_that("efa_auto genera un resultado estructurado y export_efa crea Excel", {
   skip_if_not_installed("lavaan")
   skip_if_not_installed("openxlsx")
 
   hs <- lavaan::HolzingerSwineford1939[, c("x1", "x2", "x3", "x4", "x5", "x6")]
-  res <- quiet_run(efa_auto(hs, verbose = FALSE, language = "eng"))
+  res <- quiet_run(efa_auto(hs, rotation = "oblique", verbose = FALSE, language = "eng"))
 
   expect_s3_class(res, "efa_auto")
   expect_gte(res$n_factores, 1)
   expect_true(!is.null(res$cargas))
+  expect_true("rotation" %in% names(res))
 
   tmp <- tempfile("psychomatic-efa-")
   on.exit(unlink(paste0(tmp, ".xlsx")), add = TRUE)
 
-  quiet_run(exportar_efa(res, formato = "excel", archivo = tmp))
+  quiet_run(export_efa(res, format = "excel", file_name = tmp))
 
   expect_true(file.exists(paste0(tmp, ".xlsx")))
 })
 
+test_that("efa_auto normaliza valores de rotacion legados", {
+  expect_equal(PsychoMatic:::.efa_normalize_rotation("oblicua"), "oblique")
+  expect_equal(PsychoMatic:::.efa_normalize_rotation("ortogonal"), "orthogonal")
+})
+
 test_that("cfa_auto ajusta el ejemplo de Holzinger-Swineford", {
   skip_if_not_installed("lavaan")
+  skip_if_not_installed("openxlsx")
 
   hs <- lavaan::HolzingerSwineford1939[, paste0("x", 1:9)]
   res <- quiet_run(cfa_auto(hs, model = hs_model, language = "eng"))
@@ -62,6 +69,15 @@ test_that("cfa_auto ajusta el ejemplo de Holzinger-Swineford", {
   expect_true(isTRUE(res$converged))
   expect_equal(sort(res$factors), sort(c("speed", "textual", "visual")))
   expect_true(!is.null(res$fit))
+  expect_true(all(c("Index", "Value", "Evaluation") %in% names(res$fit_indices)))
+  expect_true(all(c("Loading", "p_value", "CI_lower", "CI_upper", "Alert") %in% names(res$factor_loadings)))
+
+  tmp <- tempfile("psychomatic-cfa-")
+  on.exit(unlink(paste0(tmp, ".xlsx")), add = TRUE)
+
+  quiet_run(export_cfa(res, format = "excel", file_name = tmp))
+
+  expect_true(file.exists(paste0(tmp, ".xlsx")))
 })
 
 test_that("inv_align_auto en modo matrices devuelve un resumen valido", {

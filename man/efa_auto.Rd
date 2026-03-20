@@ -5,39 +5,44 @@
 \title{Analisis Factorial Exploratorio Optimo}
 \usage{
 efa_auto(
-  datos,
-  rotacion = c("oblicua", "ortogonal"),
-  carga_min = 0.3,
-  comunalidad_min = 0.3,
-  dif_cargas_cruzadas = 0.15,
+  data,
+  rotation = c("oblique", "orthogonal"),
+  min_loading = 0.3,
+  min_communality = 0.3,
+  min_cross_loading_diff = 0.15,
   max_iter = 20,
   verbose = TRUE,
-  exportar = NULL,
-  archivo = NULL,
-  language = "esp"
+  export_format = NULL,
+  file_name = NULL,
+  language = "esp",
+  ...
 )
 }
 \arguments{
-\item{datos}{Data frame o matriz con los items (variables numericas).}
+\item{data}{Data frame o matriz con los items (variables numericas).}
 
-\item{rotacion}{Tipo de rotacion: "oblicua" (oblimin) u "ortogonal" (varimax).}
+\item{rotation}{Tipo de rotacion: \code{"oblique"} (oblimin) u \code{"orthogonal"} (varimax).}
 
-\item{carga_min}{Carga factorial minima aceptable (default: 0.30).}
+\item{min_loading}{Carga factorial minima aceptable (default: 0.30).}
 
-\item{comunalidad_min}{Comunalidad minima aceptable (default: 0.30).}
+\item{min_communality}{Comunalidad minima aceptable (default: 0.30).}
 
-\item{dif_cargas_cruzadas}{Diferencia minima entre las dos cargas mas altas
+\item{min_cross_loading_diff}{Diferencia minima entre las dos cargas mas altas
 de un item para no considerarlo carga cruzada (default: 0.15).}
 
 \item{max_iter}{Maximo de iteraciones de eliminacion (default: 20).}
 
 \item{verbose}{Imprimir reporte en consola (default: TRUE).}
 
-\item{exportar}{Formato de exportacion opcional usado por la funcion.}
+\item{export_format}{Formato de exportacion opcional usado por la funcion.}
 
-\item{archivo}{Nombre base opcional para archivos exportados.}
+\item{file_name}{Nombre base opcional para archivos exportados.}
 
 \item{language}{Idioma del reporte: "esp" o "eng" (default: "esp").}
+
+\item{...}{Argumentos legados en espanol conservados temporalmente por
+compatibilidad (\code{datos}, \code{rotacion}, \code{carga_min}, \code{comunalidad_min},
+\code{dif_cargas_cruzadas}, \code{exportar}, \code{archivo}).}
 }
 \value{
 Lista (clase "efa_auto") con todos los resultados del analisis.
@@ -47,8 +52,8 @@ Realiza un AFE automatizado con seleccion de estimador, analisis paralelo,
 rotacion y eliminacion iterativa de items problematicos.
 }
 \examples{
-# resultado <- efa_auto(mi_datos, rotacion = "oblicua")
-# resultado <- efa_auto(mi_datos, rotacion = "ortogonal")
-# resultado <- efa_auto(mi_datos, rotacion = "oblicua", language = "eng")
+# result <- efa_auto(my_data, rotation = "oblique")
+# result <- efa_auto(my_data, rotation = "orthogonal")
+# result <- efa_auto(my_data, rotation = "oblique", language = "eng")
 
 }
