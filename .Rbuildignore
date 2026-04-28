@@ -4,6 +4,13 @@
 ^\.Rproj\.user$
 ^.*\.Rproj$
 ^\.gitignore$
+^\.git$
+^\.git/
 ^.*\.Rcheck$
+^PsychoMatic\.Rcheck$
+^PsychoMatic\.Rcheck/
 ^\.r-test-lib$
+^\.r-test-lib/
 ^\.r-lib$
+^\.r-lib/
+^PsychoMatic_.*[.]tar[.]gz$

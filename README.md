@@ -14,6 +14,7 @@ However, you can also customize it according to your own specifications; in any 
 | Analysis | Function |
 |--------|-------------|
 | Descriptives | `desc_auto()` |
+| Inter-item correlations | `cormat()` |
 | EFA + reliability | `efa_auto()`, `export_efa()` |
 | CFA + reliability | `cfa_auto()`, `export_cfa()` |
 | Factorial invariance | `factorial_invariance_auto()` |
@@ -40,6 +41,18 @@ remotes::install_github("gmoncayoj/PsychoMatic")
 | `digits`   | Number of decimal places for rounding descriptive statistics (mean, SD, skewness, kurtosis). Percentages always use at least 2 decimals. | `2` |
 | `language` | Output language for column labels and messages. Options: `"esp"` (Spanish) or `"eng"` (English). | `"esp"` |
 | `report`   | If `TRUE`, exports the results to a timestamped `.xlsx` file with two sheets: descriptives and a notes sheet with missing value count. Requires the `writexl` package. | `FALSE` |
+
+## Inter-item correlation matrix
+
+### Main arguments
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `data` | Data frame or matrix containing the items | n/a |
+| `type` | Correlation type: `"pearson"`, `"poly"` for polychoric, or `"tetra"` for tetrachoric | `"pearson"` |
+| `report` | If `TRUE`, exports the matrix to Excel | `FALSE` |
+| `file_name` | Optional Excel file name | `NULL` |
+| `digits` | Number of decimal places used in the Excel report | `3` |
 
 ## Exploratory factor analysis + reliability
 

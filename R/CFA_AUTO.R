@@ -771,7 +771,7 @@ cfa_auto <- function(data,
       note_label = "  Note:",
       loadings_title = "STANDARDIZED FACTOR LOADINGS",
       factor_label = "  Factor:",
-      ci_label = "CI",
+      ci_label = "95% CI",
       second_order_loadings_title = "SECOND-ORDER LOADINGS",
       r2_title = "R-SQUARED BY ITEM",
       factor_corr_title = "FACTOR CORRELATIONS",
@@ -811,7 +811,7 @@ cfa_auto <- function(data,
     note_label = "  Nota:",
     loadings_title = "CARGAS FACTORIALES ESTANDARIZADAS",
     factor_label = "  Factor:",
-    ci_label = "IC",
+    ci_label = "IC 95%",
     second_order_loadings_title = "CARGAS DE SEGUNDO ORDEN",
     r2_title = "R-CUADRADO POR ITEM",
     factor_corr_title = "CORRELACIONES ENTRE FACTORES",
@@ -1231,7 +1231,7 @@ cfa_auto <- function(data,
     sub <- ld[ld$Factor == f, ]
     for (j in seq_len(nrow(sub))) {
       alerta <- if (nchar(sub$Alerta[j]) > 0) paste0("  ", sub$Alerta[j]) else ""
-      cat(sprintf("    %-18s %6.3f  (SE=%.3f, z=%.2f, p=%.4f)  IC[%.3f, %.3f]%s\n",
+      cat(sprintf("    %-18s %6.3f  (SE=%.3f, z=%.2f, p=%.4f)  IC 95%% [%.3f, %.3f]%s\n",
                   sub$Item[j], sub$Lambda[j], sub$SE[j], sub$z[j], sub$p[j],
                   sub$IC_inf[j], sub$IC_sup[j], alerta))
     }
@@ -1507,7 +1507,7 @@ print.cfa_auto <- function(x, digits = 3, ...) {
     sub <- ld[ld$Factor == f, ]
     for (j in seq_len(nrow(sub))) {
       alerta <- if (nchar(sub$Alerta[j]) > 0) paste0("  ", sub$Alerta[j]) else ""
-      cat(sprintf("    %-18s %6.3f  (SE=%.3f, z=%.2f, p=%.4f)  %s[%.3f, %.3f]%s\n",
+      cat(sprintf("    %-18s %6.3f  (SE=%.3f, z=%.2f, p=%.4f)  %s [%.3f, %.3f]%s\n",
                   sub$Item[j], sub$Lambda[j], sub$SE[j], sub$z[j], sub$p[j],
                   txt$ci_label, sub$IC_inf[j], sub$IC_sup[j], alerta))
     }
@@ -1939,7 +1939,7 @@ export_cfa <- function(result, format = c("excel", "word"), file_name = NULL, di
   format <- match.arg(format, c("excel", "word"), several.ok = TRUE)
 
   if (is.null(file_name)) {
-    file_name <- paste0("CFA_Results_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+    file_name <- paste0("CFA_Results_", base::format(Sys.time(), "%Y%m%d_%H%M%S"))
   }
 
   for (fmt in format) {

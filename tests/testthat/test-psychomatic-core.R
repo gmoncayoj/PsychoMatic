@@ -33,6 +33,43 @@ test_that("desc_auto devuelve descriptivos para variables numericas", {
   expect_true(all(c("Item", "Mean", "SD", "Skewness", "Kurtosis") %in% names(res)))
 })
 
+test_that("cormat calcula matrices y exporta Excel", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("psych")
+
+  data <- data.frame(
+    item1 = c(1, 2, 3, 4, 5, 4, 3, 2),
+    item2 = c(2, 2, 3, 4, 4, 5, 3, 1),
+    item3 = c(5, 4, 3, 2, 1, 2, 3, 4)
+  )
+
+  pearson <- cormat(data, type = "pearson")
+  expect_true(is.matrix(pearson))
+  expect_equal(dim(pearson), c(3L, 3L))
+  expect_equal(unname(pearson), unname(stats::cor(data, use = "pairwise.complete.obs")))
+
+  poly <- quiet_run(cormat(data, type = "poly"))
+  expect_true(is.matrix(poly))
+  expect_equal(dim(poly), c(3L, 3L))
+
+  binary_data <- data.frame(
+    item1 = c(0, 1, 1, 0, 1, 0, 1, 0),
+    item2 = c(0, 1, 0, 0, 1, 1, 1, 0),
+    item3 = c(1, 1, 0, 0, 1, 0, 1, 0)
+  )
+
+  tetra <- quiet_run(cormat(binary_data, type = "tetra"))
+  expect_true(is.matrix(tetra))
+  expect_equal(dim(tetra), c(3L, 3L))
+
+  tmp <- tempfile("psychomatic-cormat-")
+  on.exit(unlink(paste0(tmp, ".xlsx")), add = TRUE)
+
+  quiet_run(cormat(data, type = "pearson", report = TRUE, file_name = tmp))
+
+  expect_true(file.exists(paste0(tmp, ".xlsx")))
+})
+
 test_that("efa_auto genera un resultado estructurado y export_efa crea Excel", {
   skip_if_not_installed("lavaan")
   skip_if_not_installed("openxlsx")
@@ -71,6 +108,9 @@ test_that("cfa_auto ajusta el ejemplo de Holzinger-Swineford", {
   expect_true(!is.null(res$fit))
   expect_true(all(c("Index", "Value", "Evaluation") %in% names(res$fit_indices)))
   expect_true(all(c("Loading", "p_value", "CI_lower", "CI_upper", "Alert") %in% names(res$factor_loadings)))
+
+  printed <- capture.output(print(res))
+  expect_true(any(grepl("95% CI", printed, fixed = TRUE)))
 
   tmp <- tempfile("psychomatic-cfa-")
   on.exit(unlink(paste0(tmp, ".xlsx")), add = TRUE)

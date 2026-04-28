@@ -2202,7 +2202,7 @@ export_efa <- function(result, format = c("excel", "word"), file_name = NULL) {
   format <- match.arg(format, c("excel", "word"), several.ok = TRUE)
 
   if (is.null(file_name)) {
-    file_name <- paste0("EFA_Results_", format(Sys.time(), "%Y%m%d_%H%M%S"))
+    file_name <- paste0("EFA_Results_", base::format(Sys.time(), "%Y%m%d_%H%M%S"))
   }
 
   for (fmt in format) {

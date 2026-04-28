@@ -11,8 +11,8 @@ exploratorio, analisis factorial confirmatorio e invarianza de medicion en
 flujos de trabajo pensados para R y RStudio.
 }
 \details{
-Funciones principales: \code{desc_auto()}, \code{efa_auto()}, \code{export_efa()},
-\code{cfa_auto()}, \code{export_cfa()}, \code{inv_align_auto()} y
+Funciones principales: \code{desc_auto()}, \code{cormat()}, \code{efa_auto()},
+\code{export_efa()}, \code{cfa_auto()}, \code{export_cfa()}, \code{inv_align_auto()} y
 \code{factorial_invariance_auto()}.
 }
 \seealso{
