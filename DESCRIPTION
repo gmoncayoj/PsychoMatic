@@ -1,7 +1,7 @@
 Package: PsychoMatic
 Type: Package
 Title: Automated Psychometric Workflows for R
-Version: 0.1.0
+Version: 0.2.0
 Authors@R:
     person("Jose", "Gamarra-Moncayo",
            email = "gamarramoncayoj@gmail.com",
