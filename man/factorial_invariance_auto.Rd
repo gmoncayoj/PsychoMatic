@@ -2,7 +2,7 @@
 % Please edit documentation in R/INV_FAC_AUTO.R
 \name{factorial_invariance_auto}
 \alias{factorial_invariance_auto}
-\title{Invarianza factorial multigrupo automatizada}
+\title{Automated multi-group measurement invariance}
 \usage{
 factorial_invariance_auto(
   data,
@@ -15,29 +15,39 @@ factorial_invariance_auto(
 )
 }
 \arguments{
-\item{data}{Data frame con los items y la variable de grupo.}
+\item{data}{Data frame containing the items and grouping variable.}
 
-\item{group}{Nombre o expresion de la variable de agrupacion.}
+\item{group}{Name or expression identifying the grouping variable.}
 
-\item{model}{Modelo en sintaxis \code{lavaan}.}
+\item{model}{Model syntax written for \code{lavaan}.}
 
-\item{language}{Idioma del reporte: \code{"esp"} o \code{"eng"}.}
+\item{language}{Report language: \code{"esp"} or \code{"eng"}.}
 
-\item{estimator}{Estimador solicitado o \code{"auto"} para seleccion automatica.}
+\item{estimator}{Requested estimator or \code{"auto"} for automatic selection.}
 
-\item{ordered}{Configuracion opcional para el tratamiento ordinal.}
+\item{ordered}{Optional ordered-variable configuration.}
 
-\item{report}{\code{FALSE}, \code{TRUE} o ruta para exportar un reporte.}
+\item{report}{\code{FALSE}, \code{TRUE}, or a file path for exporting a report.}
 }
 \value{
-Objeto de clase \code{factorial_invariance_auto}, devuelto invisiblemente.
+Object of class \code{factorial_invariance_auto}, returned invisibly.
 }
 \description{
-Ajusta secuencialmente modelos configural, metrico, escalar y estricto para
-evaluar el nivel maximo de invarianza soportado por los datos.
+Sequentially fits configural, metric, scalar, and strict invariance models to
+evaluate the highest level of measurement invariance supported by the data.
 }
 \examples{
-# modelo <- "F1 =~ i1 + i2 + i3"
-# factorial_invariance_auto(mi_datos, group = "pais", model = modelo)
+if (identical(Sys.getenv("PSYCHOMATIC_RUN_SLOW_EXAMPLES"), "true")) {
+  model <- "visual =~ x1 + x2 + x3"
+  rows <- c(1:25, 160:184)
+  items <- lavaan::HolzingerSwineford1939[rows, c("school", "x1", "x2", "x3")]
+  factorial_invariance_auto(
+    items,
+    group = "school",
+    model = model,
+    estimator = "ML",
+    language = "eng"
+  )
+}
 
 }

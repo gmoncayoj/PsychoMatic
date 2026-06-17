@@ -1,0 +1,55 @@
+---
+title: "Measurement Invariance Workflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Measurement Invariance Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+# Measurement Invariance Workflow
+
+This vignette shows how to prepare a small multigroup dataset for measurement
+invariance analysis.
+
+```{r setup}
+library(PsychoMatic)
+data(psychomatic_multigroup)
+```
+
+```{r structure}
+table(psychomatic_multigroup$group)
+head(psychomatic_multigroup)
+```
+
+## Model
+
+```{r model}
+model <- "
+factor1 =~ mg1 + mg2 + mg3
+factor2 =~ mg4 + mg5 + mg6
+"
+```
+
+## Sequential Invariance Testing
+
+The full workflow fits configural, metric, scalar, and strict models. It is not
+evaluated by default in CRAN vignette checks because multi-group CFA can be
+computationally heavier than a minimal example.
+
+```{r invariance, eval = FALSE}
+invariance <- factorial_invariance_auto(
+  psychomatic_multigroup,
+  group = "group",
+  model = model,
+  estimator = "ML",
+  language = "eng",
+  report = FALSE
+)
+summary(invariance)
+```
+

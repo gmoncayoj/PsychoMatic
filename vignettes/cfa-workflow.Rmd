@@ -1,0 +1,69 @@
+---
+title: "Confirmatory Factor Analysis Workflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Confirmatory Factor Analysis Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+# Confirmatory Factor Analysis Workflow
+
+This vignette outlines a small CFA workflow using the bundled continuous
+dataset.
+
+```{r setup}
+library(PsychoMatic)
+data(psychomatic_continuous)
+```
+
+## Specify A Model
+
+```{r model}
+model <- "
+factor1 =~ item1 + item2 + item3
+factor2 =~ item4 + item5 + item6
+"
+```
+
+## Compare Candidate Models
+
+`compare_models_auto()` uses `lavaan` directly and returns a compact table for
+alternative CFA specifications. ML-type estimators report information criteria
+when available, whereas WLSMV-style workflows compare models through scaled or
+robust fit indices when available. The code is not evaluated during vignette
+checks to keep package installation fast on constrained machines.
+
+```{r compare-models, eval = FALSE}
+models <- list(
+  one_factor = "general =~ item1 + item2 + item3 + item4 + item5 + item6",
+  two_factor = model
+)
+comparison <- compare_models_auto(
+  psychomatic_continuous,
+  models = models,
+  estimator = "ML",
+  language = "eng"
+)
+comparison$fit
+```
+
+## Full Automated CFA
+
+The higher-level `cfa_auto()` function adds estimator selection, reliability,
+fit interpretation, warnings, and reporting tables. It is shown but not run by
+default in this vignette because it requires optional diagnostic packages.
+
+```{r cfa-auto, eval = FALSE}
+cfa_result <- cfa_auto(
+  psychomatic_continuous,
+  model = model,
+  estimator = "ML",
+  language = "eng"
+)
+summary(cfa_result)
+```

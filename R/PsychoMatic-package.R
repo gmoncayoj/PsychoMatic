@@ -1,17 +1,16 @@
-#' PsychoMatic: herramientas psicometricas automatizadas
+#' PsychoMatic: automated psychometric workflows
 #'
-#' `PsychoMatic` reune funciones para descriptivos, analisis factorial
-#' exploratorio, analisis factorial confirmatorio e invarianza de medicion en
-#' flujos de trabajo pensados para R y RStudio.
+#' `PsychoMatic` provides functions for item descriptives, exploratory factor
+#' analysis, confirmatory factor analysis, scoring, measurement invariance,
+#' alignment invariance, IRT/DIF screening, and psychometric reporting in
+#' reproducible R workflows.
 #'
-#' Funciones principales: `desc_auto()`, `cormat()`, `efa_auto()`,
-#' `export_efa()`, `cfa_auto()`, `export_cfa()`, `inv_align_auto()` y
-#' `factorial_invariance_auto()`.
+#' Main functions include `desc_auto()`, `screen_items()`, `reverse_items()`,
+#' `score_scale()`, `cormat()`, `efa_auto()`, `cfa_auto()`,
+#' `factorial_invariance_auto()`, `inv_align_auto()`, `irt_auto()`,
+#' `dif_auto()`, `compare_models_auto()`, and `psychomatic_report()`.
 #'
 #' @keywords internal
-#' @import flextable
-#' @import officer
-#' @import openxlsx
 #' @import stats
 #' @import utils
 #' @importFrom GPArotation oblimin

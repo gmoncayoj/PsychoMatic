@@ -1,0 +1,44 @@
+---
+title: "Alignment Invariance Workflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Alignment Invariance Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+# Alignment Invariance Workflow
+
+Alignment optimization can be run from item-level data or from loading and
+intercept matrices. Matrix input is useful for compact reproducible examples.
+
+```{r setup}
+library(PsychoMatic)
+```
+
+```{r alignment-matrices}
+lambda <- matrix(
+  c(0.70, 0.80, 0.75,
+    0.72, 0.78, 0.74),
+  nrow = 2,
+  byrow = TRUE
+)
+nu <- matrix(
+  c(0.00, 0.00, 0.00,
+    0.10, 0.05, 0.08),
+  nrow = 2,
+  byrow = TRUE
+)
+```
+
+```{r alignment-run, eval = FALSE}
+alignment <- inv_align_auto(lambda = lambda, nu = nu, language = "eng")
+summary(alignment)
+```
+
+When item-level data are available, use `data` and `group` instead of `lambda`
+and `nu`.

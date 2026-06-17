@@ -2,28 +2,31 @@
 % Please edit documentation in R/DESC_AUTO.R
 \name{desc_auto}
 \alias{desc_auto}
-\title{Descriptivos automatizados para items numericos}
+\title{Automated descriptives for numeric items}
 \usage{
 desc_auto(data, digits = 2, language = "esp", report = FALSE)
 }
 \arguments{
-\item{data}{Data frame con los datos.}
+\item{data}{Data frame containing the item responses.}
 
-\item{digits}{Numero de decimales para el reporte.}
+\item{digits}{Number of decimal places used in the report.}
 
-\item{language}{Idioma del reporte: \code{"esp"} o \code{"eng"}.}
+\item{language}{Report language: \code{"esp"} or \code{"eng"}.}
 
-\item{report}{Si es \code{TRUE}, exporta un archivo Excel.}
+\item{report}{If \code{TRUE}, exports an Excel file.}
 }
 \value{
-Data frame con los descriptivos y porcentajes por categoria.
+Data frame with descriptive statistics and category percentages.
 }
 \description{
-Calcula estadisticos descriptivos y porcentajes de respuesta para las
-columnas numericas de una base de datos. Opcionalmente exporta el resultado
-a Excel.
+Computes descriptive statistics and response percentages for numeric item
+columns in a data frame. Results can optionally be exported to Excel.
 }
 \examples{
-# desc_auto(mi_datos)
+items <- data.frame(
+  item1 = c(1, 2, 3, 4, 5),
+  item2 = c(2, 2, 3, 4, 5)
+)
+desc_auto(items, language = "eng")
 
 }

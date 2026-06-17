@@ -580,30 +580,34 @@ build_alignment_report <- function(summary_table, item_results, language, settin
   )
 }
 
-#' Invarianza por alineamiento automatizada
+#' Automated alignment invariance
 #'
-#' Ejecuta un analisis de alineamiento a partir de matrices `lambda` y `nu`,
-#' o directamente desde datos y un vector de grupos.
+#' Runs alignment optimization from loading and intercept matrices (`lambda` and
+#' `nu`) or from item-level data with a grouping vector.
 #'
-#' @param lambda,nu Matrices de parametros para cargas e interceptos.
-#' @param data Datos de entrada cuando no se proporcionan `lambda` y `nu`.
-#' @param group Vector de grupos asociado a `data`.
-#' @param sampling_weights Pesos muestrales opcionales por fila.
-#' @param wgt Pesos opcionales para el procedimiento de alineamiento.
-#' @param language Idioma del reporte: `"esp"` o `"eng"`.
-#' @param model Tipo de modelo para el ajuste configural.
-#' @param align.scale,align.pow,parm_tol Parametros de ajuste del alineamiento.
-#' @param noninvariance_cutoff Porcentaje a partir del cual se marca no invarianza.
-#' @param center,optimizer,fixed,meth,eps,vcov Parametros avanzados del algoritmo.
-#' @param digits Numero de decimales del reporte.
-#' @param config_args Lista de argumentos adicionales para la etapa configural.
-#' @param alignment_args Lista de argumentos adicionales para la etapa de alineamiento.
+#' @param lambda,nu Parameter matrices for loadings and intercepts.
+#' @param data Item-level data used when `lambda` and `nu` are not supplied.
+#' @param group Grouping vector associated with `data`.
+#' @param sampling_weights Optional sampling weights, one per row.
+#' @param wgt Optional weights for the alignment procedure.
+#' @param language Report language: `"esp"` or `"eng"`.
+#' @param model Model type for the configural alignment step.
+#' @param align.scale,align.pow,parm_tol Alignment tuning parameters.
+#' @param noninvariance_cutoff Percentage used to flag non-invariance.
+#' @param center,optimizer,fixed,meth,eps,vcov Advanced algorithm parameters.
+#' @param digits Number of decimal places used in the report.
+#' @param config_args Additional arguments for the configural step.
+#' @param alignment_args Additional arguments for the alignment step.
 #'
-#' @return Objeto de clase `inv_align_auto_result`.
+#' @return Object of class `inv_align_auto_result`.
 #'
 #' @examples
-#' # res <- inv_align_auto(data = mis_items, group = mi_grupo)
-#' # summary(res)
+#' if (requireNamespace("sirt", quietly = TRUE)) {
+#'   lambda <- matrix(c(0.70, 0.80, 0.75, 0.72, 0.78, 0.74), nrow = 2, byrow = TRUE)
+#'   nu <- matrix(c(0.00, 0.00, 0.00, 0.10, 0.05, 0.08), nrow = 2, byrow = TRUE)
+#'   res <- inv_align_auto(lambda = lambda, nu = nu, language = "eng")
+#'   summary(res)
+#' }
 #'
 #' @export
 inv_align_auto <- function(
@@ -818,10 +822,10 @@ inv_align_auto <- function(
   result
 }
 
-#' Imprime un objeto `inv_align_auto_result`
+#' Print an `inv_align_auto_result` object
 #'
-#' @param x Objeto devuelto por `inv_align_auto()`.
-#' @param ... Argumentos adicionales no usados.
+#' @param x Object returned by `inv_align_auto()`.
+#' @param ... Additional unused arguments.
 #'
 #' @rdname inv_align_auto
 #' @method print inv_align_auto_result
@@ -831,10 +835,10 @@ print.inv_align_auto_result <- function(x, ...) {
   invisible(x)
 }
 
-#' Resume un objeto `inv_align_auto_result`
+#' Summarize an `inv_align_auto_result` object
 #'
-#' @param object Objeto devuelto por `inv_align_auto()`.
-#' @param ... Argumentos adicionales no usados.
+#' @param object Object returned by `inv_align_auto()`.
+#' @param ... Additional unused arguments.
 #'
 #' @rdname inv_align_auto
 #' @method summary inv_align_auto_result

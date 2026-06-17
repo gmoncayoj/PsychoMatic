@@ -31,6 +31,16 @@ test_that("desc_auto devuelve descriptivos para variables numericas", {
   expect_true(is.data.frame(res))
   expect_equal(nrow(res), 3L)
   expect_true(all(c("Item", "Mean", "SD", "Skewness", "Kurtosis") %in% names(res)))
+
+  res_esp <- quiet_run(desc_auto(data, digits = 2, language = "esp", report = FALSE))
+  expect_true(all(c("Item", "Media", "DE", "Asimetría", "Curtosis") %in% names(res_esp)))
+})
+
+test_that("desc_auto falla sin variables numericas", {
+  expect_error(
+    desc_auto(data.frame(a = letters[1:3]), language = "eng"),
+    "No numeric columns"
+  )
 })
 
 test_that("cormat calcula matrices y exporta Excel", {
@@ -70,6 +80,13 @@ test_that("cormat calcula matrices y exporta Excel", {
   expect_true(file.exists(paste0(tmp, ".xlsx")))
 })
 
+test_that("cormat valida entradas basicas", {
+  expect_error(cormat(data.frame(item1 = 1:3)), "at least two items")
+  expect_error(cormat(data.frame(item1 = 1:3, item2 = letters[1:3])), "numeric or logical")
+  expect_error(cormat(data.frame(item1 = c(1, 1, 1), item2 = c(1, 2, 3))), "two observed values")
+  expect_error(cormat(data.frame(item1 = c(NA, NA, NA), item2 = c(1, 2, 3))), "two observed values")
+})
+
 test_that("efa_auto genera un resultado estructurado y export_efa crea Excel", {
   skip_if_not_installed("lavaan")
   skip_if_not_installed("openxlsx")
@@ -81,6 +98,13 @@ test_that("efa_auto genera un resultado estructurado y export_efa crea Excel", {
   expect_gte(res$n_factores, 1)
   expect_true(!is.null(res$cargas))
   expect_true("rotation" %in% names(res))
+  expect_true(all(c("fit", "loadings", "reliability", "decisions") %in% names(res$tables)))
+
+  res_summary <- summary(res)
+  expect_true(is.data.frame(res_summary$fit))
+  expect_true(is.data.frame(res_summary$loadings))
+  expect_true(is.data.frame(res_summary$reliability))
+  expect_true(is.data.frame(res_summary$decisions))
 
   tmp <- tempfile("psychomatic-efa-")
   on.exit(unlink(paste0(tmp, ".xlsx")), add = TRUE)
@@ -108,6 +132,13 @@ test_that("cfa_auto ajusta el ejemplo de Holzinger-Swineford", {
   expect_true(!is.null(res$fit))
   expect_true(all(c("Index", "Value", "Evaluation") %in% names(res$fit_indices)))
   expect_true(all(c("Loading", "p_value", "CI_lower", "CI_upper", "Alert") %in% names(res$factor_loadings)))
+  expect_true(all(c("fit", "loadings", "reliability", "decisions") %in% names(res$tables)))
+
+  res_summary <- summary(res)
+  expect_true(is.data.frame(res_summary$fit))
+  expect_true(is.data.frame(res_summary$loadings))
+  expect_true(is.data.frame(res_summary$reliability))
+  expect_true(is.data.frame(res_summary$decisions))
 
   printed <- capture.output(print(res))
   expect_true(any(grepl("95% CI", printed, fixed = TRUE)))
@@ -118,6 +149,18 @@ test_that("cfa_auto ajusta el ejemplo de Holzinger-Swineford", {
   quiet_run(export_cfa(res, format = "excel", file_name = tmp))
 
   expect_true(file.exists(paste0(tmp, ".xlsx")))
+})
+
+test_that("cfa_auto informa modelos con items ausentes", {
+  skip_if_not_installed("lavaan")
+  skip_if_not_installed("semTools")
+  skip_if_not_installed("MVN")
+
+  data <- lavaan::HolzingerSwineford1939[, c("x1", "x2", "x3")]
+  expect_error(
+    quiet_run(cfa_auto(data, model = "visual =~ x1 + x2 + x_missing", estimator = "ML", language = "eng")),
+    "Items not found"
+  )
 })
 
 test_that("inv_align_auto en modo matrices devuelve un resumen valido", {
@@ -149,4 +192,27 @@ test_that("factorial_invariance_auto devuelve la tabla esperada de niveles", {
   expect_true(is.data.frame(res$fit_table))
   expect_equal(rownames(res$fit_table), c("configural", "metric", "scalar", "strict"))
   expect_true(is.character(res$conclusion) && nzchar(res$conclusion))
+
+  res_summary <- summary(res)
+  expect_true(is.data.frame(res_summary$fit))
+  expect_true(is.data.frame(res_summary$decisions))
+  expect_true(is.character(res_summary$conclusion))
+})
+
+test_that("factorial_invariance_auto valida variable de grupo", {
+  skip_if_not_installed("lavaan")
+
+  hs <- lavaan::HolzingerSwineford1939[, c("school", paste0("x", 1:3))]
+  hs$school <- "one_group"
+
+  expect_error(
+    quiet_run(factorial_invariance_auto(
+      hs,
+      group = "school",
+      model = "visual =~ x1 + x2 + x3",
+      language = "eng",
+      report = FALSE
+    )),
+    "at least two groups"
+  )
 })

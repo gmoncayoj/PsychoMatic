@@ -1,0 +1,61 @@
+---
+title: "Exploratory Factor Analysis Workflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Exploratory Factor Analysis Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+# Exploratory Factor Analysis Workflow
+
+This vignette shows a compact screening-to-EFA workflow with the example ordinal
+dataset included in `PsychoMatic`.
+
+```{r setup}
+library(PsychoMatic)
+data(psychomatic_ordinal)
+```
+
+## Item Screening
+
+```{r item-screening}
+screen_items(psychomatic_ordinal)
+```
+
+## Reverse Scoring And Scale Scores
+
+If an item is theoretically reverse keyed, reverse it before computing scale
+scores.
+
+```{r scoring}
+scored <- score_scale(
+  psychomatic_ordinal,
+  items = names(psychomatic_ordinal),
+  method = "mean",
+  min_valid = 0.80
+)
+scored$reliability
+```
+
+## Exploratory Factor Analysis
+
+The full automated EFA routine can be run as follows. It is not evaluated during
+CRAN vignette checks because parallel analysis and polychoric correlations may
+take longer on constrained machines.
+
+```{r efa-auto, eval = FALSE}
+efa_result <- efa_auto(
+  psychomatic_ordinal,
+  rotation = "oblique",
+  max_iter = 3,
+  verbose = FALSE,
+  language = "eng"
+)
+summary(efa_result)
+```
+

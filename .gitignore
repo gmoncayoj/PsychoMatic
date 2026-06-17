@@ -7,7 +7,6 @@
 *.Rcheck/
 .r-test-lib/
 .r-lib/
-<<<<<<< HEAD
 .Rproj.user
 .httr-oauth
 .DS_Store

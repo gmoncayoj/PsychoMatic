@@ -1127,24 +1127,34 @@
   paste(lines, collapse = "\n")
 }
 
-#' Invarianza factorial multigrupo automatizada
+#' Automated multi-group measurement invariance
 #'
-#' Ajusta secuencialmente modelos configural, metrico, escalar y estricto para
-#' evaluar el nivel maximo de invarianza soportado por los datos.
+#' Sequentially fits configural, metric, scalar, and strict invariance models to
+#' evaluate the highest level of measurement invariance supported by the data.
 #'
-#' @param data Data frame con los items y la variable de grupo.
-#' @param group Nombre o expresion de la variable de agrupacion.
-#' @param model Modelo en sintaxis `lavaan`.
-#' @param language Idioma del reporte: `"esp"` o `"eng"`.
-#' @param estimator Estimador solicitado o `"auto"` para seleccion automatica.
-#' @param ordered Configuracion opcional para el tratamiento ordinal.
-#' @param report `FALSE`, `TRUE` o ruta para exportar un reporte.
+#' @param data Data frame containing the items and grouping variable.
+#' @param group Name or expression identifying the grouping variable.
+#' @param model Model syntax written for `lavaan`.
+#' @param language Report language: `"esp"` or `"eng"`.
+#' @param estimator Requested estimator or `"auto"` for automatic selection.
+#' @param ordered Optional ordered-variable configuration.
+#' @param report `FALSE`, `TRUE`, or a file path for exporting a report.
 #'
-#' @return Objeto de clase `factorial_invariance_auto`, devuelto invisiblemente.
+#' @return Object of class `factorial_invariance_auto`, returned invisibly.
 #'
 #' @examples
-#' # modelo <- "F1 =~ i1 + i2 + i3"
-#' # factorial_invariance_auto(mi_datos, group = "pais", model = modelo)
+#' if (identical(Sys.getenv("PSYCHOMATIC_RUN_SLOW_EXAMPLES"), "true")) {
+#'   model <- "visual =~ x1 + x2 + x3"
+#'   rows <- c(1:25, 160:184)
+#'   items <- lavaan::HolzingerSwineford1939[rows, c("school", "x1", "x2", "x3")]
+#'   factorial_invariance_auto(
+#'     items,
+#'     group = "school",
+#'     model = model,
+#'     estimator = "ML",
+#'     language = "eng"
+#'   )
+#' }
 #'
 #' @export
 factorial_invariance_auto <- function(
@@ -1393,7 +1403,20 @@ factorial_invariance_auto <- function(
       fitted_models = lapply(fitted_models, function(x) x$fit),
       fit_table = fit_table,
       display_table = display_table,
+      decisions = .invariance_decisions_table(structure(list(fit_table = fit_table), class = "factorial_invariance_auto")),
       conclusion = conclusion,
+      warnings = notes,
+      notes = notes,
+      call = match.call(),
+      tables = list(
+        fit = display_table,
+        decisions = data.frame(
+          level = rownames(fit_table),
+          decision = fit_table$decision,
+          status = fit_table$status,
+          stringsAsFactors = FALSE
+        )
+      ),
       report_text = report_text,
       report_path = written_report
     ),

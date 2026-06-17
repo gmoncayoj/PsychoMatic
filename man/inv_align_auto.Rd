@@ -4,7 +4,7 @@
 \alias{inv_align_auto}
 \alias{print.inv_align_auto_result}
 \alias{summary.inv_align_auto_result}
-\title{Invarianza por alineamiento automatizada}
+\title{Automated alignment invariance}
 \usage{
 inv_align_auto(
   lambda = NULL,
@@ -35,47 +35,51 @@ inv_align_auto(
 \method{summary}{inv_align_auto_result}(object, ...)
 }
 \arguments{
-\item{lambda, nu}{Matrices de parametros para cargas e interceptos.}
+\item{lambda, nu}{Parameter matrices for loadings and intercepts.}
 
-\item{data}{Datos de entrada cuando no se proporcionan \code{lambda} y \code{nu}.}
+\item{data}{Item-level data used when \code{lambda} and \code{nu} are not supplied.}
 
-\item{group}{Vector de grupos asociado a \code{data}.}
+\item{group}{Grouping vector associated with \code{data}.}
 
-\item{sampling_weights}{Pesos muestrales opcionales por fila.}
+\item{sampling_weights}{Optional sampling weights, one per row.}
 
-\item{wgt}{Pesos opcionales para el procedimiento de alineamiento.}
+\item{wgt}{Optional weights for the alignment procedure.}
 
-\item{language}{Idioma del reporte: \code{"esp"} o \code{"eng"}.}
+\item{language}{Report language: \code{"esp"} or \code{"eng"}.}
 
-\item{model}{Tipo de modelo para el ajuste configural.}
+\item{model}{Model type for the configural alignment step.}
 
-\item{align.scale, align.pow, parm_tol}{Parametros de ajuste del alineamiento.}
+\item{align.scale, align.pow, parm_tol}{Alignment tuning parameters.}
 
-\item{noninvariance_cutoff}{Porcentaje a partir del cual se marca no invarianza.}
+\item{noninvariance_cutoff}{Percentage used to flag non-invariance.}
 
-\item{center, optimizer, fixed, meth, eps, vcov}{Parametros avanzados del algoritmo.}
+\item{center, optimizer, fixed, meth, eps, vcov}{Advanced algorithm parameters.}
 
-\item{digits}{Numero de decimales del reporte.}
+\item{digits}{Number of decimal places used in the report.}
 
-\item{config_args}{Lista de argumentos adicionales para la etapa configural.}
+\item{config_args}{Additional arguments for the configural step.}
 
-\item{alignment_args}{Lista de argumentos adicionales para la etapa de alineamiento.}
+\item{alignment_args}{Additional arguments for the alignment step.}
 
-\item{x}{Objeto devuelto por \code{inv_align_auto()}.}
+\item{x}{Object returned by \code{inv_align_auto()}.}
 
-\item{...}{Argumentos adicionales no usados.}
+\item{...}{Additional unused arguments.}
 
-\item{object}{Objeto devuelto por \code{inv_align_auto()}.}
+\item{object}{Object returned by \code{inv_align_auto()}.}
 }
 \value{
-Objeto de clase \code{inv_align_auto_result}.
+Object of class \code{inv_align_auto_result}.
 }
 \description{
-Ejecuta un analisis de alineamiento a partir de matrices \code{lambda} y \code{nu},
-o directamente desde datos y un vector de grupos.
+Runs alignment optimization from loading and intercept matrices (\code{lambda} and
+\code{nu}) or from item-level data with a grouping vector.
 }
 \examples{
-# res <- inv_align_auto(data = mis_items, group = mi_grupo)
-# summary(res)
+if (requireNamespace("sirt", quietly = TRUE)) {
+  lambda <- matrix(c(0.70, 0.80, 0.75, 0.72, 0.78, 0.74), nrow = 2, byrow = TRUE)
+  nu <- matrix(c(0.00, 0.00, 0.00, 0.10, 0.05, 0.08), nrow = 2, byrow = TRUE)
+  res <- inv_align_auto(lambda = lambda, nu = nu, language = "eng")
+  summary(res)
+}
 
 }

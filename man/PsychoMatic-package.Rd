@@ -4,16 +4,18 @@
 \name{PsychoMatic-package}
 \alias{PsychoMatic}
 \alias{PsychoMatic-package}
-\title{PsychoMatic: herramientas psicometricas automatizadas}
+\title{PsychoMatic: automated psychometric workflows}
 \description{
-\code{PsychoMatic} reune funciones para descriptivos, analisis factorial
-exploratorio, analisis factorial confirmatorio e invarianza de medicion en
-flujos de trabajo pensados para R y RStudio.
+\code{PsychoMatic} provides functions for item descriptives, exploratory factor
+analysis, confirmatory factor analysis, scoring, measurement invariance,
+alignment invariance, IRT/DIF screening, and psychometric reporting in
+reproducible R workflows.
 }
 \details{
-Funciones principales: \code{desc_auto()}, \code{cormat()}, \code{efa_auto()},
-\code{export_efa()}, \code{cfa_auto()}, \code{export_cfa()}, \code{inv_align_auto()} y
-\code{factorial_invariance_auto()}.
+Main functions include \code{desc_auto()}, \code{screen_items()}, \code{reverse_items()},
+\code{score_scale()}, \code{cormat()}, \code{efa_auto()}, \code{cfa_auto()},
+\code{factorial_invariance_auto()}, \code{inv_align_auto()}, \code{irt_auto()},
+\code{dif_auto()}, \code{compare_models_auto()}, and \code{psychomatic_report()}.
 }
 \seealso{
 Useful links:
@@ -25,6 +27,11 @@ Useful links:
 }
 \author{
 \strong{Maintainer}: Jose Gamarra-Moncayo \email{gamarramoncayoj@gmail.com} (\href{https://orcid.org/0000-0002-0781-3616}{ORCID})
+
+Authors:
+\itemize{
+  \item Jose Gamarra-Moncayo \email{gamarramoncayoj@gmail.com} (\href{https://orcid.org/0000-0002-0781-3616}{ORCID})
+}
 
 }
 \keyword{internal}

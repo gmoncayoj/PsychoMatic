@@ -2,7 +2,7 @@
 % Please edit documentation in R/EFA_AUTO.R
 \name{efa_auto}
 \alias{efa_auto}
-\title{Analisis Factorial Exploratorio Optimo}
+\title{Automated exploratory factor analysis}
 \usage{
 efa_auto(
   data,
@@ -19,41 +19,49 @@ efa_auto(
 )
 }
 \arguments{
-\item{data}{Data frame o matriz con los items (variables numericas).}
+\item{data}{Data frame or matrix containing numeric item responses.}
 
-\item{rotation}{Tipo de rotacion: \code{"oblique"} (oblimin) u \code{"orthogonal"} (varimax).}
+\item{rotation}{Rotation family: \code{"oblique"} (oblimin) or \code{"orthogonal"}
+(varimax).}
 
-\item{min_loading}{Carga factorial minima aceptable (default: 0.30).}
+\item{min_loading}{Minimum acceptable factor loading.}
 
-\item{min_communality}{Comunalidad minima aceptable (default: 0.30).}
+\item{min_communality}{Minimum acceptable communality.}
 
-\item{min_cross_loading_diff}{Diferencia minima entre las dos cargas mas altas
-de un item para no considerarlo carga cruzada (default: 0.15).}
+\item{min_cross_loading_diff}{Minimum difference between the two largest
+loadings required to avoid a cross-loading flag.}
 
-\item{max_iter}{Maximo de iteraciones de eliminacion (default: 20).}
+\item{max_iter}{Maximum number of iterative item-removal steps.}
 
-\item{verbose}{Imprimir reporte en consola (default: TRUE).}
+\item{verbose}{If \code{TRUE}, prints a console report.}
 
-\item{export_format}{Formato de exportacion opcional usado por la funcion.}
+\item{export_format}{Optional export format passed to \code{export_efa()}.}
 
-\item{file_name}{Nombre base opcional para archivos exportados.}
+\item{file_name}{Optional base file name for exported files.}
 
-\item{language}{Idioma del reporte: "esp" o "eng" (default: "esp").}
+\item{language}{Report language: \code{"esp"} or \code{"eng"}.}
 
-\item{...}{Argumentos legados en espanol conservados temporalmente por
-compatibilidad (\code{datos}, \code{rotacion}, \code{carga_min}, \code{comunalidad_min},
-\code{dif_cargas_cruzadas}, \code{exportar}, \code{archivo}).}
+\item{...}{Deprecated legacy aliases kept temporarily for backward
+compatibility. New code should use the English argument names documented
+above.}
 }
 \value{
-Lista (clase "efa_auto") con todos los resultados del analisis.
+Object of class \code{efa_auto} with model results and tidy tables.
 }
 \description{
-Realiza un AFE automatizado con seleccion de estimador, analisis paralelo,
-rotacion y eliminacion iterativa de items problematicos.
+Runs an automated exploratory factor analysis workflow with estimator
+selection, parallel analysis, rotation, iterative item screening, reliability,
+and structured output tables.
 }
 \examples{
-# result <- efa_auto(my_data, rotation = "oblique")
-# result <- efa_auto(my_data, rotation = "orthogonal")
-# result <- efa_auto(my_data, rotation = "oblique", language = "eng")
+set.seed(1)
+factor_score <- rnorm(80)
+items <- data.frame(
+  item1 = factor_score + rnorm(80, sd = 0.4),
+  item2 = factor_score + rnorm(80, sd = 0.4),
+  item3 = factor_score + rnorm(80, sd = 0.4),
+  item4 = factor_score + rnorm(80, sd = 0.4)
+)
+result <- efa_auto(items, max_iter = 1, verbose = FALSE, language = "eng")
 
 }

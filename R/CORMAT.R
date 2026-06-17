@@ -14,8 +14,16 @@
 #' @return A correlation matrix.
 #'
 #' @examples
-#' # cormat(my_data, type = "pearson")
-#' # cormat(my_data, type = "poly", report = TRUE)
+#' items <- data.frame(
+#'   item1 = c(1, 2, 3, 4, 5),
+#'   item2 = c(2, 2, 3, 4, 5),
+#'   item3 = c(5, 4, 3, 2, 1)
+#' )
+#' cormat(items, type = "pearson")
+#' if (requireNamespace("openxlsx", quietly = TRUE)) {
+#'   path <- tempfile("correlations-", fileext = ".xlsx")
+#'   cormat(items, type = "pearson", report = TRUE, file_name = path)
+#' }
 #'
 #' @export
 cormat <- function(data,
@@ -44,6 +52,7 @@ cormat <- function(data,
   }
 
   prepared <- .cormat_prepare_data(data, type)
+  .cormat_validate_observed_variation(prepared)
 
   correlation_matrix <- switch(
     type,
@@ -117,7 +126,35 @@ cormat <- function(data,
   stop("Could not extract a correlation matrix from the selected method.", call. = FALSE)
 }
 
+.cormat_validate_observed_variation <- function(data) {
+  varying <- vapply(
+    data,
+    function(x) length(unique(stats::na.omit(x))) >= 2L,
+    logical(1)
+  )
+
+  if (!all(varying)) {
+    stop(
+      "All items must have at least two observed values.",
+      call. = FALSE
+    )
+  }
+
+  invisible(data)
+}
+
 .cormat_export_excel <- function(correlation_matrix, type, file_name = NULL, digits = 3) {
+  if (!requireNamespace("openxlsx", quietly = TRUE)) {
+    stop("Package 'openxlsx' is required to export Excel reports.", call. = FALSE)
+  }
+
+  createWorkbook <- openxlsx::createWorkbook
+  addWorksheet <- openxlsx::addWorksheet
+  writeData <- openxlsx::writeData
+  freezePane <- openxlsx::freezePane
+  setColWidths <- openxlsx::setColWidths
+  saveWorkbook <- openxlsx::saveWorkbook
+
   if (is.null(file_name)) {
     file_name <- paste0("Correlation_Matrix_", type, "_", base::format(Sys.time(), "%Y%m%d_%H%M%S"))
   }

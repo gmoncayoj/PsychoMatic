@@ -1,0 +1,28 @@
+---
+title: "Getting Started with PsychoMatic"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with PsychoMatic}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+`PsychoMatic` automates common psychometric workflows while keeping the
+underlying results available as R objects.
+
+```{r}
+library(PsychoMatic)
+
+items <- data.frame(
+  item1 = c(1, 2, 3, 4, 5),
+  item2 = c(2, 2, 3, 4, 5),
+  item3 = c(5, 4, 3, 2, 1)
+)
+
+desc_auto(items, language = "eng")
+cormat(items, type = "pearson")
+```

@@ -33,7 +33,15 @@ Computes an inter-item correlation matrix using Pearson, polychoric, or
 tetrachoric correlations. Optionally exports the matrix to an Excel file.
 }
 \examples{
-# cormat(my_data, type = "pearson")
-# cormat(my_data, type = "poly", report = TRUE)
+items <- data.frame(
+  item1 = c(1, 2, 3, 4, 5),
+  item2 = c(2, 2, 3, 4, 5),
+  item3 = c(5, 4, 3, 2, 1)
+)
+cormat(items, type = "pearson")
+if (requireNamespace("openxlsx", quietly = TRUE)) {
+  path <- tempfile("correlations-", fileext = ".xlsx")
+  cormat(items, type = "pearson", report = TRUE, file_name = path)
+}
 
 }
