@@ -15,6 +15,7 @@ efa_auto(
   export_format = NULL,
   file_name = NULL,
   language = "esp",
+  seed = NULL,
   ...
 )
 }
@@ -40,6 +41,9 @@ loadings required to avoid a cross-loading flag.}
 \item{file_name}{Optional base file name for exported files.}
 
 \item{language}{Report language: \code{"esp"} or \code{"eng"}.}
+
+\item{seed}{Optional single integer seed for reproducible random operations.
+Defaults to \code{NULL}, so no seed is set unless explicitly requested.}
 
 \item{...}{Deprecated legacy aliases kept temporarily for backward
 compatibility. New code should use the English argument names documented

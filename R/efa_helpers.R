@@ -18,7 +18,6 @@
 
   # Submuestrear si n es muy grande para evitar problemas de memoria
   if (n > 5000) {
-    set.seed(7492)
     X <- X[sample(n, 5000), ]
     n <- 5000L
   }

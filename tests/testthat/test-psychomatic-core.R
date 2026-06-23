@@ -92,10 +92,11 @@ test_that("efa_auto genera un resultado estructurado y export_efa crea Excel", {
   skip_if_not_installed("openxlsx")
 
   hs <- lavaan::HolzingerSwineford1939[, c("x1", "x2", "x3", "x4", "x5", "x6")]
-  res <- quiet_run(efa_auto(hs, rotation = "oblique", verbose = FALSE, language = "eng"))
+  res <- quiet_run(efa_auto(hs, rotation = "oblique", verbose = FALSE, language = "eng", seed = 1))
 
   expect_s3_class(res, "efa_auto")
   expect_gte(res$n_factores, 1)
+  expect_equal(res$seed, 1)
   expect_true(!is.null(res$cargas))
   expect_true("rotation" %in% names(res))
   expect_true(all(c("fit", "loadings", "reliability", "decisions") %in% names(res$tables)))

@@ -20,6 +20,8 @@
 #' @param export_format Optional export format passed to `export_efa()`.
 #' @param file_name Optional base file name for exported files.
 #' @param language Report language: `"esp"` or `"eng"`.
+#' @param seed Optional single integer seed for reproducible random operations.
+#'   Defaults to `NULL`, so no seed is set unless explicitly requested.
 #' @param ... Deprecated legacy aliases kept temporarily for backward
 #'   compatibility. New code should use the English argument names documented
 #'   above.
@@ -49,6 +51,7 @@ efa_auto <- function(data,
                      export_format = NULL,
                      file_name = NULL,
                      language = "esp",
+                     seed = NULL,
                      ...) {
 
   data_missing <- missing(data)
@@ -143,6 +146,15 @@ efa_auto <- function(data,
   language <- .efa_normalize_language(language)
   rotation <- .efa_normalize_rotation(rotation)
   txt <- .efa_labels(language)
+
+  if (!is.null(seed)) {
+    if (!is.numeric(seed) || length(seed) != 1L || is.na(seed) ||
+        !is.finite(seed) || seed < 0 || seed > .Machine$integer.max ||
+        seed != floor(seed)) {
+      stop("Argument `seed` must be NULL or a single non-negative integer.", call. = FALSE)
+    }
+    set.seed(as.integer(seed))
+  }
 
   if (!requireNamespace("psych", quietly = TRUE))
     stop(txt$required_psych)
@@ -765,6 +777,7 @@ efa_auto <- function(data,
     comunalidades        = efa$communality,
     distribucion         = distribucion,
     language             = language,
+    seed                 = seed,
     n_factores           = n_factores,
     estimador            = est,
     rotation             = tipo_rot,
