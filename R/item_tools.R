@@ -10,23 +10,33 @@
 #' @param ceiling_cutoff Proportion at the maximum score used to flag ceiling effects.
 #' @param min_item_rest Item-rest correlation below which an item is flagged as
 #'   probably reverse keyed or inconsistent with the remaining items.
+#' @param language Output language: `"eng"` (default) or `"esp"`.
+#' @param report Generate a report, or supply an output path.
+#' @param format Report format: `"excel"`, `"word"`, or both.
+#' @param file_name Output file name, without extension when using both formats.
+#' @param overwrite Allow replacing an existing report (default `FALSE`).
+#' @param verbose Show results directly in the console (default `TRUE`).
+#' @details Displayed percentages are on a 0--100 scale. The returned data frame
+#'   retains its original English column names and 0--1 proportions for compatibility.
 #'
 #' @return A data frame of class `psychomatic_item_screen`.
 #'
 #' @examples
-#' items <- data.frame(
-#'   item1 = c(1, 2, 3, 4, 5),
-#'   item2 = c(5, 4, 3, 2, 1),
-#'   item3 = c(1, 1, 2, 2, 3)
-#' )
-#' screen_items(items)
+#' # Replace MY_DATA with your data frame and adapt the item names or columns.
+#' \dontrun{
+#' screen_items(MY_DATA[, 3:14])
+#' }
 #'
 #' @export
 screen_items <- function(data,
                          digits = 3,
                          floor_cutoff = 0.80,
                          ceiling_cutoff = 0.80,
-                         min_item_rest = -0.10) {
+                         min_item_rest = -0.10,
+                         language = "eng", report = FALSE, format = "excel",
+                         file_name = NULL, overwrite = FALSE, verbose = TRUE) {
+  language <- .pm_normalize_language(language)
+  output <- .pm_output_options(report, format, file_name, overwrite, digits, verbose)
   items <- .pm_prepare_numeric_items(data)
   item_names <- names(items)
 
@@ -79,7 +89,7 @@ screen_items <- function(data,
   numeric_cols <- vapply(out, is.numeric, logical(1))
   out[numeric_cols] <- lapply(out[numeric_cols], function(x) round(x, digits))
   class(out) <- c("psychomatic_item_screen", "data.frame")
-  out
+  .pm_finish_analysis(out, output, language)
 }
 
 #' Reverse-score selected items
@@ -98,12 +108,18 @@ screen_items <- function(data,
 #'   reversed columns.
 #' @param detect If `TRUE`, reverse items flagged by `screen_items()` as probable
 #'   reverse-keyed items.
+#' @details Repeated selections are applied once. Non-missing responses must be
+#'   finite and fall within the effective scoring range. When reversed columns
+#'   are appended, an existing target name is treated as a collision and is
+#'   never overwritten silently.
 #'
 #' @return A data frame with attributes `reversed_items` and `reverse_range`.
 #'
 #' @examples
-#' items <- data.frame(item1 = 1:5, item2 = 5:1)
-#' reverse_items(items, items = "item2", min_score = 1, max_score = 5)
+#' # Replace MY_DATA with your data frame and adapt the item names or columns.
+#' \dontrun{
+#' reverse_items(MY_DATA, items = c("R2", "R4"), min_score = 1, max_score = 5)
+#' }
 #'
 #' @export
 reverse_items <- function(data,
@@ -113,7 +129,7 @@ reverse_items <- function(data,
                           suffix = "_r",
                           overwrite = FALSE,
                           detect = FALSE) {
-  out <- as.data.frame(data)
+  out <- .pm_as_data_frame(data)
   numeric_items <- .pm_prepare_numeric_items(out)
 
   selected <- character(0)
@@ -121,9 +137,10 @@ reverse_items <- function(data,
     selected <- as.character(items)
   }
   if (isTRUE(detect)) {
-    screened <- screen_items(numeric_items)
+    screened <- screen_items(numeric_items, verbose = FALSE)
     selected <- unique(c(selected, screened$item[screened$probable_reverse]))
   }
+  selected <- unique(selected)
 
   if (length(selected) == 0L) {
     stop("No items were selected for reverse scoring.", call. = FALSE)
@@ -138,6 +155,22 @@ reverse_items <- function(data,
     stop("Items selected for reverse scoring must be numeric: ",
          paste(non_numeric, collapse = ", "), call. = FALSE)
   }
+  .pm_assert_finite_item_values(out, selected, "reverse scoring")
+
+  if (!is.character(suffix) || length(suffix) != 1L || is.na(suffix)) {
+    stop("`suffix` must be a character scalar.", call. = FALSE)
+  }
+  if (!isTRUE(overwrite)) {
+    output_names <- paste0(selected, suffix)
+    collisions <- intersect(output_names, names(out))
+    if (length(collisions) > 0L) {
+      stop(
+        "Reverse-scored column already exists: ",
+        paste(collisions, collapse = ", "),
+        call. = FALSE
+      )
+    }
+  }
 
   observed <- unlist(out[selected], use.names = FALSE)
   observed <- observed[!is.na(observed)]
@@ -147,13 +180,35 @@ reverse_items <- function(data,
   }
   if (is.null(min_score)) min_score <- min(observed)
   if (is.null(max_score)) max_score <- max(observed)
-  if (!is.numeric(min_score) || !is.numeric(max_score) || min_score >= max_score) {
+  min_score <- .pm_validate_scalar_number(min_score, "min_score")
+  max_score <- .pm_validate_scalar_number(max_score, "max_score")
+  if (min_score >= max_score) {
     stop("`min_score` and `max_score` must define an increasing numeric range.",
          call. = FALSE)
+  }
+  outside_range <- vapply(
+    out[selected],
+    function(x) any(!is.na(x) & (x < min_score | x > max_score)),
+    logical(1)
+  )
+  if (any(outside_range)) {
+    stop(
+      sprintf(
+        "Observed values outside the reverse-scoring range [%s, %s] for items: %s.",
+        min_score,
+        max_score,
+        paste(selected[outside_range], collapse = ", ")
+      ),
+      call. = FALSE
+    )
   }
 
   for (item in selected) {
     reversed <- min_score + max_score - out[[item]]
+    if (is.integer(out[[item]]) &&
+        all(is.na(reversed) | reversed == trunc(reversed))) {
+      reversed <- as.integer(reversed)
+    }
     if (isTRUE(overwrite)) {
       out[[item]] <- reversed
     } else {
@@ -181,12 +236,20 @@ reverse_items <- function(data,
 #' @param impute Missing-data handling: `"none"` or `"person_mean"`.
 #' @param reverse Optional character vector of items to reverse before scoring.
 #' @param min_score,max_score Optional score range used when `reverse` is provided.
+#' @details Eligible incomplete rows are prorated: mean scores use the available
+#'   item mean and sum scores multiply that mean by the scale length. Missing
+#'   values may remain `NA`, but non-finite responses are rejected before any
+#'   scale is scored. Duplicate display labels receive stable unique keys
+#'   recorded in `scale_map`.
 #'
-#' @return A list of class `psychomatic_scores` with score and reliability tables.
+#' @return A list of class `psychomatic_scores` with score and reliability
+#'   tables and a `scale_map` linking unique keys to display labels.
 #'
 #' @examples
-#' items <- data.frame(item1 = c(1, 2, NA), item2 = c(2, 3, 4), item3 = c(3, 4, 5))
-#' score_scale(items, items = names(items), min_valid = 2 / 3)
+#' # Replace MY_DATA with your data frame and adapt the item names or columns.
+#' \dontrun{
+#' score_scale(MY_DATA, items = c("R1", "R2", "R3", "R4"))
+#' }
 #'
 #' @export
 score_scale <- function(data,
@@ -200,7 +263,12 @@ score_scale <- function(data,
                         max_score = NULL) {
   method <- match.arg(method)
   impute <- match.arg(impute)
-  item_data <- as.data.frame(data)
+  if (inherits(data, "psychomatic_spec")) {
+    item_data <- data$data[data$item_index]
+    names(item_data) <- data$items
+  } else {
+    item_data <- .pm_as_data_frame(data)
+  }
 
   if (!is.null(reverse)) {
     item_data <- reverse_items(
@@ -219,48 +287,56 @@ score_scale <- function(data,
     keys <- list(total = as.character(items))
   }
   if (!is.list(keys) || length(keys) == 0L || is.null(names(keys)) ||
-      any(!nzchar(names(keys)))) {
+      anyNA(names(keys)) || any(!nzchar(names(keys)))) {
     stop("`keys` must be a named list of item names.", call. = FALSE)
   }
 
-  scores <- data.frame(row = seq_len(nrow(item_data)))
-  reliability <- lapply(names(keys), function(scale) {
-    scale_items <- as.character(keys[[scale]])
+  scale_labels <- names(keys)
+  scale_keys <- make.unique(scale_labels, sep = "_")
+  normalized_keys <- unname(keys)
+  names(normalized_keys) <- scale_keys
+  scale_item_sets <- vector("list", length(keys))
+  for (i in seq_along(keys)) {
+    scale_items <- as.character(keys[[i]])
     missing_items <- setdiff(scale_items, names(item_data))
     if (length(missing_items) > 0L) {
-      stop("Items not found for scale `", scale, "`: ",
+      stop("Items not found for scale `", scale_labels[i], "`: ",
            paste(missing_items, collapse = ", "), call. = FALSE)
     }
     if (!all(vapply(item_data[scale_items], is.numeric, logical(1)))) {
       stop("All scoring items must be numeric.", call. = FALSE)
     }
+    scale_item_sets[[i]] <- scale_items
+  }
+  .pm_assert_finite_item_values(
+    item_data,
+    unique(unlist(scale_item_sets, use.names = FALSE)),
+    "scale scoring"
+  )
+
+  score_columns <- vector("list", length(keys))
+  reliability <- vector("list", length(keys))
+
+  for (i in seq_along(keys)) {
+    scale_key <- scale_keys[i]
+    scale_label <- scale_labels[i]
+    scale_items <- scale_item_sets[[i]]
 
     values <- as.matrix(item_data[scale_items])
     valid_count <- rowSums(!is.na(values))
     required <- .pm_required_valid_items(length(scale_items), min_valid)
     eligible <- valid_count >= required
 
-    scored_values <- values
-    if (impute == "person_mean") {
-      row_mean <- rowMeans(scored_values, na.rm = TRUE)
-      for (i in seq_len(nrow(scored_values))) {
-        if (eligible[i] && anyNA(scored_values[i, ])) {
-          scored_values[i, is.na(scored_values[i, ])] <- row_mean[i]
-        }
-      }
-    }
-
-    score <- if (method == "mean") {
-      rowMeans(scored_values, na.rm = FALSE)
-    } else {
-      rowSums(scored_values, na.rm = FALSE)
-    }
+    person_mean <- rowMeans(values, na.rm = TRUE)
+    person_mean[valid_count == 0L] <- NA_real_
+    score <- if (method == "mean") person_mean else person_mean * length(scale_items)
     score[!eligible] <- NA_real_
-    scores[[scale]] <<- score
+    score_columns[[i]] <- score
 
     alpha_value <- .pm_alpha(item_data[scale_items])
-    data.frame(
-      scale = scale,
+    reliability[[i]] <- data.frame(
+      scale = scale_key,
+      label = scale_label,
       n_items = length(scale_items),
       min_valid = required,
       alpha = alpha_value,
@@ -269,16 +345,23 @@ score_scale <- function(data,
       n_scored = sum(!is.na(score)),
       stringsAsFactors = FALSE
     )
-  })
+  }
 
-  scores$row <- NULL
+  names(score_columns) <- scale_keys
+  scores <- as.data.frame(score_columns, check.names = FALSE, optional = TRUE)
   reliability <- do.call(rbind, reliability)
   rownames(reliability) <- NULL
+  scale_map <- data.frame(
+    key = scale_keys,
+    label = scale_labels,
+    stringsAsFactors = FALSE
+  )
 
   result <- list(
     scores = scores,
     reliability = reliability,
-    keys = keys,
+    scale_map = scale_map,
+    keys = normalized_keys,
     method = method,
     impute = impute,
     min_valid = min_valid,
@@ -290,15 +373,43 @@ score_scale <- function(data,
 }
 
 .pm_prepare_numeric_items <- function(data) {
+  if (inherits(data, "psychomatic_spec")) {
+    specification <- data
+    data <- specification$data[specification$item_index]
+    names(data) <- specification$items
+  }
   if (!is.data.frame(data) && !is.matrix(data)) {
     stop("`data` must be a data frame or matrix.", call. = FALSE)
   }
-  out <- as.data.frame(data)
+  out <- as.data.frame(data, check.names = FALSE, optional = TRUE)
+  ordered_cols <- vapply(out, is.ordered, logical(1))
+  if (any(ordered_cols)) {
+    out[ordered_cols] <- lapply(out[ordered_cols], as.integer)
+  }
   numeric_cols <- vapply(out, is.numeric, logical(1))
   if (!any(numeric_cols)) {
     stop("`data` must contain at least one numeric item.", call. = FALSE)
   }
   out[numeric_cols]
+}
+
+.pm_assert_finite_item_values <- function(data, items, context) {
+  invalid <- vapply(
+    data[items],
+    function(x) any(is.nan(x) | (!is.na(x) & !.pm_available_values(x))),
+    logical(1)
+  )
+  if (any(invalid)) {
+    stop(
+      sprintf(
+        "All non-missing values used for %s must be finite; check items: %s.",
+        context,
+        paste(items[invalid], collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
+  invisible(data)
 }
 
 .pm_has_variation <- function(x) {
@@ -340,8 +451,13 @@ score_scale <- function(data,
   if (ncol(data) < 2L || any(!vapply(data, .pm_has_variation, logical(1)))) {
     return(NA_real_)
   }
-  tryCatch(
-    suppressWarnings(psych::alpha(data, check.keys = FALSE)$total$raw_alpha),
-    error = function(e) NA_real_
-  )
+  tryCatch({
+    invisible(utils::capture.output(
+      result <- suppressWarnings(suppressMessages(psych::alpha(
+        data,
+        check.keys = FALSE
+      )))
+    ))
+    result$total$raw_alpha
+  }, error = function(e) NA_real_)
 }

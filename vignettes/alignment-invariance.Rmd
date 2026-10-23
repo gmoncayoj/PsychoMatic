@@ -11,34 +11,71 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-# Alignment Invariance Workflow
+# What alignment adds
 
-Alignment optimization can be run from item-level data or from loading and
-intercept matrices. Matrix input is useful for compact reproducible examples.
+Alignment optimization estimates approximate parameter comparability without
+imposing exact equality on every loading and intercept. It is often most useful
+with many groups, where long exact-invariance sequences become impractical. It
+does not prove invariance or automatically justify latent-mean comparisons.
 
-```{r setup}
-library(PsychoMatic)
-```
+`inv_align_auto()` accepts item-level data or group-by-item loading and
+intercept matrices. Matrix inputs must contain parameters from compatible
+configural measurement models; observed item means are not substitutes for
+factor intercepts.
 
-```{r alignment-matrices}
-lambda <- matrix(
-  c(0.70, 0.80, 0.75,
-    0.72, 0.78, 0.74),
-  nrow = 2,
-  byrow = TRUE
+# Compact matrix workflow
+
+The matrices below are illustrative configural-model parameters with explicit
+group and item identities.
+
+```{r matrices}
+groups <- c("A", "B")
+items <- paste0("i", 1:9)
+
+lambda <- rbind(
+  A = c(0.78, 0.73, 0.76, 0.72, 0.80, 0.69, 0.77, 0.74, 0.71),
+  B = c(0.76, 0.75, 0.72, 0.74, 0.78, 0.71, 0.75, 0.76, 0.70)
 )
-nu <- matrix(
-  c(0.00, 0.00, 0.00,
-    0.10, 0.05, 0.08),
-  nrow = 2,
-  byrow = TRUE
+nu <- rbind(
+  A = rep(0, length(items)),
+  B = c(0.03, -0.02, 0.45, 0.01, -0.03, 0.02, 0.00, 0.02, -0.01)
 )
+dimnames(lambda) <- dimnames(nu) <- list(groups, items)
 ```
 
-```{r alignment-run, eval = FALSE}
-alignment <- inv_align_auto(lambda = lambda, nu = nu, language = "eng")
-summary(alignment)
+```{r alignment, eval = FALSE}
+if (requireNamespace("sirt", quietly = TRUE)) {
+  alignment <- PsychoMatic::inv_align_auto(
+    lambda = lambda,
+    nu = nu,
+    fixed = TRUE,
+    meth = 2,
+    language = "eng"
+  )
+  summary(alignment)
+}
 ```
 
-When item-level data are available, use `data` and `group` instead of `lambda`
-and `nu`.
+The alignment chunk is not evaluated during vignette construction because the
+optional optimization engine can be slow on constrained workers. The installed
+example executes the same bounded workflow.
+
+# Interpretation and diagnostics
+
+Named matrices and weights are matched by group/item identity. Missing,
+ambiguous, or duplicate identities are rejected rather than paired by accident.
+Engine errors, nonconvergence, malformed dimensions, and non-finite objectives
+produce a structured `not_evaluable` result without favorable prose.
+
+Alignment R-squared and the percentage of non-invariant parameters are
+approximate diagnostics that depend on tuning, tolerance, model quality, and
+the number/diversity of groups. A cutoff is a heuristic rather than a formal
+test. Inspect item/group flags, the objective and convergence evidence,
+requested/effective settings, missingness diagnostics, and sensitivity to
+reasonable tuning values. With only two groups, conventional complete or
+researcher-directed partial invariance will often be easier to interpret.
+
+Use `factorial_invariance_auto()` for a complete exact-invariance sequence and
+`invariance_partial()` for explicitly justified releases with anchors.
+`psychomatic_report()` can then export the structured evidence from whichever
+workflow matches the research question.

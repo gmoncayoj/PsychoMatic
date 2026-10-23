@@ -6,42 +6,60 @@
 \usage{
 cormat(
   data,
-  type = c("pearson", "poly", "tetra"),
+  type = c("auto", "pearson", "poly", "tetra"),
   report = FALSE,
   file_name = NULL,
-  digits = 3
+  digits = 3,
+  ordinal_levels = NULL,
+  overwrite = FALSE,
+  format = "excel",
+  verbose = TRUE,
+  language = "eng"
 )
 }
 \arguments{
 \item{data}{Data frame or matrix containing the items.}
 
-\item{type}{Type of correlation to compute. Options are \code{"pearson"}, \code{"poly"}
-for polychoric correlations, and \code{"tetra"} for tetrachoric correlations.}
+\item{type}{Defaults to \code{"auto"}: dichotomous items use tetrachoric;
+ordinal items with 2-5 categories use polychoric. With 6+ categories,
+ordinal items use polychoric when absolute moment skewness exceeds 1,
+absolute excess kurtosis exceeds 2, or endpoint mass is at least 0.50;
+otherwise Pearson is used. Numeric integer items with at most 10 observed
+categories are inferred ordinal; ordered factors declare this explicitly.
+These shape flags are operational rules, not universal literature cutoffs.
+Mixed low-category/continuous inputs require explicit selection. Manual
+options are \code{"pearson"}, \code{"poly"}, and \code{"tetra"}.}
 
-\item{report}{If \code{TRUE}, exports the matrix to an Excel file.}
+\item{report}{If \code{TRUE}, save a report in the requested format.}
 
 \item{file_name}{Optional Excel file name. If \code{NULL}, a timestamped name is
-generated automatically.}
+generated in the working directory (\code{getwd()}).}
 
 \item{digits}{Number of decimal places used in the Excel report.}
+
+\item{ordinal_levels}{Optional uniquely named list giving the ordered levels
+for unordered categorical items used with \code{type = "poly"} or \code{"tetra"}.}
+
+\item{overwrite}{If \code{TRUE}, an existing report file may be replaced.}
+
+\item{format}{Report format: \code{"excel"}, \code{"word"}, or both.}
+
+\item{verbose}{If \code{TRUE}, print results directly, including when assigned.}
+
+\item{language}{Output language: \code{"esp"} or \code{"eng"}.}
 }
 \value{
-A correlation matrix.
+A correlation matrix with pairwise sample sizes, requested and
+effective correlation types, and validation diagnostics as attributes.
 }
 \description{
 Computes an inter-item correlation matrix using Pearson, polychoric, or
 tetrachoric correlations. Optionally exports the matrix to an Excel file.
 }
 \examples{
-items <- data.frame(
-  item1 = c(1, 2, 3, 4, 5),
-  item2 = c(2, 2, 3, 4, 5),
-  item3 = c(5, 4, 3, 2, 1)
-)
-cormat(items, type = "pearson")
-if (requireNamespace("openxlsx", quietly = TRUE)) {
-  path <- tempfile("correlations-", fileext = ".xlsx")
-  cormat(items, type = "pearson", report = TRUE, file_name = path)
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+cormat(MY_DATA[, 3:14])
 }
 
 }

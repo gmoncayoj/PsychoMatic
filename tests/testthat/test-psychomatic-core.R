@@ -54,9 +54,23 @@ test_that("cormat calcula matrices y exporta Excel", {
   )
 
   pearson <- cormat(data, type = "pearson")
+  expected_pearson <- stats::cor(data, use = "pairwise.complete.obs")
   expect_true(is.matrix(pearson))
   expect_equal(dim(pearson), c(3L, 3L))
-  expect_equal(unname(pearson), unname(stats::cor(data, use = "pairwise.complete.obs")))
+  expect_equal(as.numeric(pearson), as.numeric(expected_pearson))
+  expect_identical(dim(pearson), dim(expected_pearson))
+  expect_identical(dimnames(pearson), dimnames(expected_pearson))
+  expect_identical(attr(pearson, "requested_type"), "pearson")
+  expect_identical(attr(pearson, "effective_type"), "pearson")
+  expect_identical(
+    attr(pearson, "pairwise_n"),
+    matrix(8L, nrow = 3L, ncol = 3L, dimnames = dimnames(expected_pearson))
+  )
+  expect_s3_class(attr(pearson, "diagnostics"), "data.frame")
+  expect_true(all(
+    c("code", "severity", "item", "message") %in%
+      names(attr(pearson, "diagnostics"))
+  ))
 
   poly <- quiet_run(cormat(data, type = "poly"))
   expect_true(is.matrix(poly))
@@ -82,7 +96,7 @@ test_that("cormat calcula matrices y exporta Excel", {
 
 test_that("cormat valida entradas basicas", {
   expect_error(cormat(data.frame(item1 = 1:3)), "at least two items")
-  expect_error(cormat(data.frame(item1 = 1:3, item2 = letters[1:3])), "numeric or logical")
+  expect_error(cormat(data.frame(item1 = 1:3, item2 = letters[1:3]), type = "pearson"), "numeric or logical")
   expect_error(cormat(data.frame(item1 = c(1, 1, 1), item2 = c(1, 2, 3))), "two observed values")
   expect_error(cormat(data.frame(item1 = c(NA, NA, NA), item2 = c(1, 2, 3))), "two observed values")
 })

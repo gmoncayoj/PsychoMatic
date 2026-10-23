@@ -1,0 +1,193 @@
+---
+title: "Measurement ESEM: target and geomin rotation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Measurement ESEM: target and geomin rotation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+`esem_auto()` estimates one measurement block with freely estimated
+cross-loadings and correlated factors using native lavaan rotation. It currently
+supports one pooled sample, without structural regressions, multiple blocks,
+multigroup invariance or bifactor constraints. In lavaan terminology a model
+with only the measurement part is EFA; ESEM measurement models are also discussed
+in the psychometric literature (Asparouhov & Muthén, 2009; Marsh & Alamer, 2024).
+The function adds preparation, diagnostics, bilingual reports and a numerical
+manuscript draft to the native engine. It does not replace investigator judgment.
+
+## Use with your data
+
+Replace `MY_DATA` with your data frame. This template selects ordinal items in
+columns 2:13 and excludes column 1, such as a demographic variable.
+
+```{r user-template, eval=FALSE}
+result <- PsychoMatic::esem_auto(
+  data = MY_DATA,
+  n_factors = 3,
+  items = 2:13,
+  rotation = "geomin",
+  ordered = TRUE,
+  language = "esp"
+)
+result$manuscript_text
+```
+
+`items` selects columns: use `2:13` or `names(MY_DATA)[2:13]`, not
+`MY_DATA[, 2:13]`, which returns the data themselves. Raw geomin data always
+require an explicit selection. Use `items = names(MY_DATA)` only when every
+column is an item. Use `ordered = FALSE` for continuous numeric indicators.
+The installed `examples/EXAMPLE_ESEM_AUTO.R` contains reusable geomin and target
+templates. The executable examples below generate data only to make this
+methodological walkthrough reproducible.
+
+## Choosing the rotation
+
+| Decision | Target | Geomin |
+|---|---|---|
+| Appropriate starting point | Theory or earlier evidence assigns primary dimensions to items | Item-factor organization remains uncertain |
+| Input | Named list of primary item sets | Factor count plus items; a named list can supply only the count/selection |
+| Criterion | Orient specified secondary loadings close to zero | Seek a relatively simple pattern without prescribing primary memberships |
+| Cross-loadings | Freely estimated, including targeted positions | Freely estimated |
+| Factor labels | Retain labels of the supplied target positions | Neutral F1, F2, etc.; interpret after inspecting loadings |
+| What remains necessary | Examine deviations from the target and replicate | Interpret factor content and assess stability |
+
+Both rotations are oblique. Target zeros are **soft targets**, not zero
+constraints; primary entries of 1 in the stored target matrix mean that these
+positions are untargeted, not fixed to one. The supplied primary membership is
+an assumption, not a finding. A target constructed from this same sample remains
+exploratory. A theoretically motivated target also needs independent evidence
+before stronger generalization.
+
+For the same unrestricted measurement block, changing the rotation preserves
+the reproduced covariance and global fit. CFI/RMSEA cannot determine whether
+target or geomin is preferable. Inspect pattern coefficients (not the oblique
+structure matrix), factor correlations, interpretability and replication.
+With oblique factors, an item's largest pattern coefficient is a descriptive
+diagnostic; it does not automatically assign the item or warrant deletion.
+
+Geomin epsilon defaults to 0.001. It affects the rotation criterion and can
+change the loading pattern; this value is not a universal optimum. Report the
+chosen epsilon and examine justified alternatives. The default 30 random starts
+reduce dependence on initial values, without proving a global optimum or
+sampling stability. The default `seed = NULL` leaves RNG management to lavaan
+without imposing a wrapper seed. Set `seed` explicitly to make starts
+reproducible and restore the incoming random-number state after fitting.
+
+## Reproducible target example
+
+```{r data}
+population <- '
+ A =~ .75*x1 + .70*x2 + .65*x3
+ B =~ .75*x4 + .70*x5 + .65*x6
+ C =~ .75*x7 + .70*x8 + .65*x9
+ A =~ .12*x4
+ B =~ .12*x7
+ C =~ .12*x1
+'
+d <- lavaan::simulateData(population, sample.nobs = 400, seed = 101)
+keys <- list(A = paste0("x", 1:3), B = paste0("x", 4:6), C = paste0("x", 7:9))
+ordinal <- as.data.frame(lapply(d, function(v) {
+  cut(v, unique(stats::quantile(v, seq(0, 1, length.out = 6))),
+      include.lowest = TRUE, labels = FALSE)
+}))
+target <- PsychoMatic::esem_auto(ordinal, factors = keys, ordered = TRUE,
+  compare_cfa = TRUE, seed = 2026, language = "esp", verbose = FALSE)
+target$results$fit_indices[, c("metric", "value", "variant")]
+target$results$item_diagnostics
+```
+
+## Reproducible geomin example
+
+```{r geomin}
+geomin <- PsychoMatic::esem_auto(d, items = names(d), n_factors = 3,
+  rotation = "geomin", ordered = FALSE,
+  rotation_args = list(geomin_epsilon = .01), seed = 2026, verbose = FALSE)
+summary(geomin)$loadings[, c("factor", "item", "standardized")]
+```
+
+Neither example chooses the number of factors automatically. The target list
+fixes the requested dimensionality, while a geomin model without a list requires
+`n_factors`. Retention evidence and theory should inform that decision before
+running the model.
+
+## Estimation, uncertainty and failed solutions
+
+`ordered = NULL` uses the data specification or heuristically inferred levels.
+Inspect `effective_settings$ordered`; integer response scales can be mistaken
+for ordinal indicators. Explicit `ordered = TRUE`, `FALSE`, or selected column
+names are available. Nominal factors require explicit category mapping through
+`psychomatic_spec()`. Specifications preserve declared reverse scoring and
+category order. Continuous treatment of ordered factors requires deliberate
+numeric coding rather than silent conversion.
+
+Ordinal/mixed indicators default to WLSMV; continuous indicators to MLR. Explicit
+alternatives are ULSMV or ML, respectively. Default deletion is listwise;
+ordinal models support pairwise treatment and continuous ML/MLR supports FIML.
+No estimator, imputation or missing-data substitution is made silently.
+
+The rotated native fit is available as `$fit`. Safe item aliases avoid syntax
+ambiguity; `$results$item_map` links them to original names. Use
+`lavaan::standardizedSolution(result$fit)` for native standardized uncertainty.
+The reported loading intervals are 95%; RMSEA intervals are native 90% intervals.
+Original-scale and standardized loading intervals have separate columns and
+reader-facing tables. `effective_settings$preparation` retains declared category
+order, reverse scoring and effective reversal bounds; inferred bounds are
+recorded explicitly. Input encoding is displayed before reversal, which is
+documented separately. Reader reports also include target, maps and versions.
+The `fit_variant` argument selects scaled, robust or base CFI/TLI/RMSEA; a
+missing requested index remains NA with a reason. Corrected χ²/df/p use scaled
+values unless base is requested. SRMR always uses the base value.
+
+Convergence alone is insufficient: post-check admissibility, finite parameter
+inference and rotation warnings are inspected. Failed, inadmissible or
+unavailable inference produces a limitation statement instead of a substantive
+manuscript interpretation. Saturated models are flagged because perfect global
+fit cannot evaluate restrictions. A descriptive CFA comparison checks the same
+cases, ordinal items and estimation options; it neither ranks models nor runs
+an automatic likelihood-ratio test. Comparison failure does not invalidate an
+otherwise interpretable ESEM fit.
+
+## Final interpretation and reports
+
+References precede the final Interpretation section in console, Word and Excel.
+It contains a numerical draft describing the
+observed sample size, estimation, rotation, fit, loading ranges and factor
+correlations. It does not invent substantive meanings for factors, apply a
+universal fit cutoff or infer construct validity from the rotation choice.
+Review and adapt it to your study's theory and reporting conventions.
+Preparation, item/factor maps and versions remain in the returned object and
+Word/Excel reports but are omitted from the console.
+
+```{r draft}
+cat(target$manuscript_text)
+```
+
+```{r reports, eval=FALSE}
+PsychoMatic::psychomatic_report(target, format = c("word", "excel"),
+  file_name = "esem_results", language = "esp")
+```
+
+Files use `getwd()` when no path is supplied and existing paths are protected
+unless `overwrite = TRUE`. Reader reports contain aggregate results, not rows
+of participant responses. Detailed audit output records settings, conditions
+and decisions. The native fit object should be handled as study data because
+lavaan itself retains input data internally.
+
+## References
+
+Asparouhov, T., & Muthén, B. (2009). Exploratory structural equation modeling.
+*Structural Equation Modeling: A Multidisciplinary Journal, 16*(3), 397–438.
+https://doi.org/10.1080/10705510903008204
+
+Marsh, H., & Alamer, A. (2024). When and how to use set-exploratory structural
+equation modelling to test structural models: A tutorial using the R package
+lavaan. *British Journal of Mathematical and Statistical Psychology, 77*(3),
+459–476. https://doi.org/10.1111/bmsp.12336
+
+The lavaan project. *ESEM and EFA* (official tutorial source).
+https://github.com/yrosseel/lavaan.org/blob/master/tutorial/efa.qmd

@@ -39,8 +39,16 @@ Reverses item scores using either a user-defined score range or the observed
 range of the selected items. Items can be selected explicitly or detected
 from negative item-rest correlations.
 }
+\details{
+Repeated selections are applied once. Non-missing responses must be
+finite and fall within the effective scoring range. When reversed columns
+are appended, an existing target name is treated as a collision and is
+never overwritten silently.
+}
 \examples{
-items <- data.frame(item1 = 1:5, item2 = 5:1)
-reverse_items(items, items = "item2", min_score = 1, max_score = 5)
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+reverse_items(MY_DATA, items = c("R2", "R4"), min_score = 1, max_score = 5)
+}
 
 }

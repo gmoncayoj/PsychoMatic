@@ -10,7 +10,13 @@ dif_auto(
   items = NULL,
   alpha = 0.01,
   language = c("eng", "esp"),
-  digits = 3
+  digits = 3,
+  polytomous = c("not_evaluable", "median"),
+  report = FALSE,
+  file_name = NULL,
+  format = "excel",
+  overwrite = FALSE,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -27,6 +33,22 @@ the grouping column.}
 \item{language}{Interpretation language: \code{"eng"} or \code{"esp"}.}
 
 \item{digits}{Number of decimal places used in interpretation tables.}
+
+\item{polytomous}{Handling of polytomous focal items. The default,
+\code{"not_evaluable"}, does not dichotomize them. Use \code{"median"} only to opt
+into a compatibility screen that is labeled and accompanied by a
+methodological warning.}
+
+\item{report}{If \code{TRUE}, also save a reader-facing report.}
+
+\item{file_name}{Optional base path for exported files. When \code{NULL}, reports
+use a unique timestamped name in the working directory (\code{getwd()}).}
+
+\item{format}{Report format: \code{"excel"}, \code{"word"}, or both.}
+
+\item{overwrite}{If \code{TRUE}, allow replacement of an existing report.}
+
+\item{verbose}{If \code{TRUE}, print results directly, including when assigned.}
 }
 \value{
 A list of class \code{psychomatic_dif} with screening results,
@@ -34,18 +56,16 @@ item-level interpretation (\code{dif_type}, decision, severity, and
 recommendation), an overall DIF summary, and supporting APA 7 references.
 }
 \description{
-Performs a lightweight DIF screening using logistic regression. Polytomous
-items are dichotomized at their median for this screening, so flagged results
-should be followed up with a dedicated IRT or ordinal DIF analysis.
+Performs a lightweight DIF screening using logistic regression. By default,
+polytomous items are reported as not evaluable because dichotomization can
+obscure category-specific DIF. Median dichotomization is available only as
+an explicit compatibility option and should be followed by a dedicated IRT
+or ordinal DIF analysis.
 }
 \examples{
-set.seed(1)
-group <- rep(c("A", "B"), each = 20)
-theta <- rnorm(40)
-items <- data.frame(
-  item1 = as.integer(theta + rnorm(40) > 0),
-  item2 = as.integer(theta + rnorm(40) > 0)
-)
-dif_auto(items, group = group)
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+dif_auto(MY_DATA[, 3:14], group = MY_DATA$Country)
+}
 
 }

@@ -1,0 +1,35 @@
+Package: PsychoMatic
+Type: Package
+Title: Flujos de trabajo psicométricos automatizados e informes
+Version: 1.0.0
+Authors@R: person("Jose", "Gamarra-Moncayo", email =
+        "gamarramoncayoj@gmail.com", role = c("aut", "cre"), comment =
+        c(ORCID = "0000-0002-0781-3616"))
+Description: Automatiza flujos psicométricos para investigadores
+        aplicados: descriptivos de ítems, correlaciones, análisis
+        factorial exploratorio y confirmatorio, modelos exploratorios
+        de medición con ecuaciones estructurales, fiabilidad, redes
+        psicométricas, invarianza multigrupo y optimización por
+        alineación. Incluye procedimientos de análisis paralelo (Horn,
+        1965, <doi:10.1007/BF02289447>), diagnóstico de normalidad
+        multivariante (Mardia, 1970, <doi:10.1093/biomet/57.3.519>),
+        cambios de ajuste en invarianza (Chen, 2007,
+        <doi:10.1080/10705510701301834>) y alineación (Asparouhov y
+        Muthen, 2014, <doi:10.1080/10705511.2014.919210>), entre otros.
+        Devuelve objetos estructurados de R y exporta informes
+        bilingües para documentar el análisis.
+License: GPL (>= 3)
+Copyright: 2026 José Gamarra-Moncayo
+URL: https://github.com/gmoncayoj/PsychoMatic
+BugReports: https://github.com/gmoncayoj/PsychoMatic/issues
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports: GPArotation, lavaan (>= 0.7-3), Matrix, psych, stats, utils
+Suggests: bootnet (>= 1.6), callr, EGAnet (>= 2.0.7), flextable,
+        igraph, knitr, mirt, MVN (>= 6.3), NetworkComparisonTest,
+        officer, openxlsx, pkgload, qgraph, rmarkdown, semTools (>=
+        0.5-9), sirt (>= 4.2-133), testthat (>= 3.0.0), writexl, xml2
+Roxygen: list(markdown = TRUE)
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+Config/roxygen2/version: 8.1.0

@@ -1,0 +1,273 @@
+---
+title: "Automated psychometric network analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Automated psychometric network analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval=FALSE)
+```
+
+`network_auto()` optionally runs unique variable analysis (UVA), then estimates an
+EGA network with Spearman correlations, EBICglasso (gamma .5) and consensus
+Louvain. These are prespecified choices, not a claim that one estimator is best
+for every scale. English is the primary reporting language; use `language="esp"`
+for Spanish. All stages keep their native results, conditions and package versions.
+
+Choose `model="glasso"`, `"TMFG"`, or `"BGGM"`, and `algorithm="louvain"`,
+`"leiden"`, or `"walktrap"`. Defaults remain GLASSO and consensus Louvain.
+The selected estimator is propagated to bootEGA, bootnet, NCT and loading
+permutations. The selected algorithm applies to empirical and group EGA and
+both hierEGA orders. Non-Louvain choices use LE for the separate unidimensional
+check; Leiden explicitly uses EGAnet's modularity objective. Loading
+permutations use fixed communities and Walktrap/LE for unused membership checks.
+EGAnet 2.4.1 disables BGGM internally; PsychoMatic preserves that native error
+without substituting another estimator. TMFG edges are filtered correlations,
+not partial correlations. Gamma affects GLASSO only. UVA retains its independent
+native redundancy estimator.
+TMFG hierarchy orders need at least four nodes. EGAnet can also fail in riEGA
+bootstraps with an invalid correlation missing-data argument for some options.
+These optional native failures are recorded with explanations; no method is
+silently replaced and earlier valid results remain available.
+
+`bootstrap_type="resampling"` draws participant rows with replacement;
+`bootstrap_type="parametric"` simulates continuous multivariate-normal data
+from the empirical correlation matrix. It does not retain ordinal categories:
+with `corr="polychoric"`, native auto correlation classifies continuous
+replicates as continuous. These options govern structural EGA, configural,
+riEGA and hierEGA bootstraps. Neither is automatically declared best. bootnet
+edge precision remains nonparametric and centrality stability remains case-drop
+(Christensen & Golino, 2021; Epskamp et al., 2018).
+Use `network_plots(fit, "figures", label_cex=1.5)` to enlarge node labels further
+when reducing figures for publication; default label size is 1.2 without
+automatic shrinking.
+
+Choose `corr="polychoric"` for ordinal items (binary items use the corresponding
+tetrachoric correlation), or `corr="pearson"` for Pearson correlations. The
+polychoric option requires every item to be ordinal; numeric integer items with
+at most seven observed categories are recognized by the specification. Declare
+other ordinal encodings with `psychomatic_spec(..., level="ordinal")`.
+The installed EGAnet polychoric estimator supports up to 11 categories per item.
+The EGAnet `auto` estimator is constrained to classify all selected item columns
+as ordinal. Correlations are re-estimated from response rows inside every
+bootstrap and permutation; a fixed correlation matrix is never resampled.
+For `hierEGA`, higher-order network scores are continuous and native `auto`
+uses Pearson correlations for those scores when their category count exceeds
+the declared ordinal threshold. RI residuals are correlation matrices, not
+recoded ordinal response data. EGAnet 2.4.1 `riEGA` ignores a nondefault ordinal
+category threshold in its initial correlation calculation: when any item has
+more than seven categories, the polychoric riEGA stage is explicitly not
+evaluable rather than silently switching to mixed correlations.
+
+`seed=NULL` (default) draws one analysis seed from the session RNG without
+imposing a fixed seed. That double-precision seed is passed to all native stages,
+including EGAnet routines whose own NULL option is not controlled by R's RNG.
+It is recorded in `fit$effective_settings$seed`; `set.seed()` before the call
+controls the draw. Set `seed=2026` (or `2026L`) to replay an analysis without
+advancing the caller's RNG state. The method reports the seed and its origin. Package
+versions remain in `fit$diagnostics$versions`, outside reader-facing reports.
+
+```{r}
+fit <- PsychoMatic::network_auto(my_data, items=paste0("I",1:12), group="sex",
+  reverse=c("I3","I8"), ranges=list(I3=c(1,5), I8=c(1,5)), seed=2026)
+print(fit)
+plot(fit, type="network")
+plot(fit, type="ega_stability") # EGA network and item replication, side by side
+PsychoMatic::network_plots(fit, "figures", formats=c("pdf","svg","png"))
+PsychoMatic::psychomatic_report(fit, format=c("word","excel"),
+  file_name="network_results", language="eng")
+PsychoMatic::psychomatic_report(fit, format=c("word","excel"),
+  file_name="resultados_red", language="esp")
+```
+
+Reader reports include signed cross-loadings beneath primary loadings and a
+complete item stability table beneath community structural consistency. Empty
+assigned-community cells in the cross-loading table refer to primary loadings
+reported above. Loading magnitude uses unrounded values.
+
+Publication figures use colored replication points and shared layouts for group
+networks. In a two-group comparison, thick orange node borders indicate complete
+BH-significant loading differences; gray borders mean no difference detected,
+and squares mean unavailable tests. Non-significance does not imply equivalence.
+The combined `ega_stability` panel is selected by default when bootstrap results
+exist. Standalone network and stability figures remain available explicitly.
+
+Optional dependencies are `EGAnet` (>=2.0.7), `bootnet`,
+`NetworkComparisonTest`, `igraph`, and `qgraph`. Install these explicitly before
+analysis; PsychoMatic never installs packages during a user's analysis.
+Word requires `officer`/`flextable`; Excel requires `openxlsx`.
+
+```{r}
+install.packages(c("EGAnet","bootnet","NetworkComparisonTest","igraph","qgraph",
+  "officer","flextable","openxlsx"))
+```
+
+UVA uses weighted topological overlap (wTO threshold .25; Christensen et al.,
+2023). With the default `uva=NULL`, UVA is **not executed**: no wTO, redundancy
+table, removal proposal or UVA figure is generated. Reports explicitly identify
+the omitted stage; omission does not mean no redundancies were detected.
+Use `uva="diagnostic"` to compute candidate pairs, their wTO and justified native
+removal proposals while keeping every item. Use `uva="removed"` to authorize
+automatic representative selection and removal, with documented reasons.
+No mode asks interactive questions; behavior is identical in consoles, scripts
+and knitr. The former `"ask"` and `"reduce"` options are no longer valid.
+Review semantic coverage before authorizing removal;
+statistical redundancy alone does not demonstrate wording effects.
+The redundant-pairs table shows only finite wTO values at or above the declared
+cutoff; the full native pairwise table remains in `fit$results$uva$wto$pairwise`.
+
+Default console and Word/Excel reports emphasize detected communities, bootstrap
+structural consistency and separate comparisons of network structure, global
+strength and item loadings. The compact item table shows only loading differences
+with BH-adjusted p < .05. Non-significance does not establish equivalence;
+unavailable tests or unsupported configural structure remain explicit. Full
+technical tables, conditions and bibliographies remain in the result object.
+Use `print(fit, detail="audit")` or
+`psychomatic_report(fit, detail="audit")` to inspect them.
+The shared APA formatter uses partial italics for journal names, volumes and
+book titles in package bibliographies. Word and Excel preserve rich text;
+compatible interactive consoles use ANSI italics and redirected logs stay plain.
+Use `options(PsychoMatic.ansi=FALSE)` to disable or `TRUE` to force terminal styling.
+EGAnet retains the member of a pair with the lowest maximum wTO to other items
+outside that pair. For larger sets it retains the member with the highest mean
+wTO within the redundant set, including the zero diagonal in the native mean.
+An exact tie is resolved by the native candidate order, not a quality judgment.
+The console/Word/Excel reports identify proposed
+and actual removals, their retained representatives, scores, rules and ties.
+When UVA is requested, `fit$results$uva` preserves the native **proposal**, including its candidate
+`reduced_data`; the **applied** decision is in `fit$results$uva_selection` and
+`fit$results$retained_items`/`removed_items`. Requested and effective UVA modes
+are recorded separately. The original responses are preserved in diagnostics.
+Groups always share the same analysis item set. Bootstrap inference holds this
+set fixed; when UVA removes representatives it does not incorporate selection
+uncertainty.
+
+```{r}
+# Skip UVA (default)
+fit <- network_auto(my_data, uva=NULL)
+# Describe redundancy, preserve all items
+diagnostic <- network_auto(my_data, uva="diagnostic")
+# Authorize justified representative removal
+reduced <- network_auto(my_data, uva="removed")
+```
+
+riEGA uses original **unrecoded** numeric responses. Empirical RI convergence and
+admissibility are explicitly checked; an unsuccessful RI fit makes the stage
+not evaluable. Only declared reverse keys
+and theoretical ranges recode the main analysis. Negative correlations are
+diagnostics, not semantic evidence that an item is inverse. RI convergence does
+not alone establish wording effects (Bulut et al., 2025; Faraci & Nasonte, 2026).
+An admissible RI fit can leave an empty residual network or unassigned items.
+In that case its partition TEFI and structural bootstrap are explicitly
+`not_evaluable`, rather than a programming failure. The original EGA, main
+bootstrap and group comparisons continue. The diagnostic plot explains the
+unavailable partition; this outcome does not prove wording effects.
+Raw and RI partitions are also evaluated on the same original correlation matrix.
+Native residual TEFI is separately labeled and never ranked against raw TEFI.
+
+Revised network loadings preserve signs and cross-loadings. Approximate magnitude
+guidelines are .20 (small), .35 (moderate), .50 (large), following Christensen et
+al. (2025). These guidelines do not justify automatic item deletion. Network
+figures show only item identifiers in **nodes**; numeric **edge** labels are
+regularized partial correlations (`type="network"`). `type="loadings"` displays
+primary revised loadings on **item-to-dimension edges**, with square dimension
+nodes; this is a descriptive loading diagram, not a CFA model or an item network.
+`type="loadings_matrix"` retains the complete signed loading/cross-loading map.
+
+`hierEGA()` explores higher-order structure. When EGA identifies at least three
+dimensions with at least three indicators each, the workflow fits correlated,
+second-order and orthogonal bifactor CFA candidates using `lavaan`. Internal names
+protect model syntax from arbitrary item labels. Any ordinal indicators, including
+mixed ordinal/continuous data, use WLSMV with the ordinal subset; otherwise
+MLR is used on the same complete-case sample. Recommendations require convergence,
+admissibility, CFI >=.95, RMSEA <=.06 and SRMR <=.08. Among comparable likelihood
+fits, BIC must improve by at least 10 to prefer a more complex model over an
+acceptable correlated candidate. WLSMV comparisons use fit/admissibility and a
+declared preference for simpler acceptable candidates; AIC/BIC are not used.
+These are conservative operational heuristics, not proof of a true model.
+When bootstrap is enabled, riEGA refits the random intercept in each resample,
+and hierEGA refits both orders. Candidate recommendations additionally require
+>=.70 structural consistency in relevant orders; otherwise they are indeterminate.
+An indeterminate recommendation is legitimate. genTEFI has its own comparison
+set. Same-sample CFA is exploratory; external validation remains necessary.
+Reports separately show network communities and TEFI by order, native hierarchical
+assignments and the native exploratory interpretation, followed by
+**Supplementary CFA candidates**. CFA factors use the initial pooled EGA partition, rather than the native
+hierEGA lower-order partition, which may identify different communities. Both
+partitions are reported and their distinct sources must be retained.
+Negative variances are inadmissible Heywood cases, regardless of CFI. A second-order model with exactly three first-order
+factors has a just-identified higher-order component (`higher_order_df=0`);
+identical fit indices do not distinguish it from the correlated model. This
+does not mean that the full item-level CFA has zero degrees of freedom.
+
+bootEGA provides item stability, dimensionality frequencies and exact composition
+structural consistency (Christensen & Golino, 2021). bootnet provides nonparametric
+edge intervals and case-drop centrality stability (Epskamp et al., 2018).
+Strength sums absolute edge weights. Betweenness and closeness use inverse
+absolute edge weights as distances, with unnormalized native centrality scaling.
+Closeness is reported as undefined for
+disconnected networks; its comparison p and CS are also not evaluable when the
+empirical graph is disconnected. Expected influence retains signs. Centrality is descriptive,
+not causal or an intervention recommendation. CS below .25 is inadequate;
+at least .50 is preferable. Small replication counts are diagnostic only.
+
+NCT compares structure, global strength, edges and centrality (van Borkulo et al.,
+2023). A shared raw-row estimator recomputes correlations in each permutation.
+Every observed group participates in all pairwise comparisons. Missing group
+labels and group sample sizes are reported. Configural support requires equal
+empirical co-membership and >=.70 bootstrap stability for every retained item in
+every group, assessed against the pooled structure. No unstable items are silently
+removed. EGAnet loading tests are explicitly exploratory when configural support
+is absent (Jamison et al., 2024).
+
+The four BH families include all requested group pairs: both global tests, all
+edge tests, all node/centrality tests, and all primary loading tests. `p_raw` and
+`p_BH` remain separate. Loading p values are recalculated from **all** unrounded
+native permutations with the plus-one Monte Carlo correction, avoiding rounding
+and first-draw omission in the public EGAnet 2.4.1 table. The minimum p resolution
+is `1/(n_perm+1)`. A nonsignificant result does not establish equivalence, and NCT
+does not establish latent scalar invariance (Benjamini & Hochberg, 1995).
+For this fixed-partition loading test, repeated community discovery contributes
+neither to the estimated network nor to the loadings. Native EGAnet permutations
+therefore use Walktrap and the LE membership check to avoid unused consensus
+Louvain iterations. Correlation estimation, GLASSO, permutation seeds and revised
+loadings under the original partition are preserved. These internal membership
+results are not used as empirical group structures; the reported group networks
+and configural bootstrap still use the requested consensus Louvain.
+
+All plotting and report exports use cached results, without rerunning analyses.
+Numerical Excel cells retain full precision. Word and Excel include figures and
+APA 7 reference strings; participant rows are excluded. Existing files require
+explicit `overwrite=TRUE`. Default counts are 1000 per bootstrap stage and 5000
+permutation draws; runtime increases with items, groups and consensus iterations.
+`verbose=TRUE` prints stage/substage starts, completion and elapsed seconds.
+`n_cores` controls bootEGA, bootnet and loading permutations; NCT remains sequential
+in the supported version. The hierarchical bootstrap respects `consensus_iter`
+at both orders. A user interruption in an optional stage is recorded as
+`interrupted`, later stages are skipped and completed earlier results are
+returned as a partial workflow. An incomplete invariance stage supplies no
+invariance conclusions or partially computed permutation p values.
+
+```{r}
+# Diagnostic run, not publication-level precision:
+quick <- PsychoMatic::network_auto(my_data, items=1:12, group="sex", n_boot=20,
+  n_perm=19, consensus_iter=10, seed=2026, verbose=TRUE)
+quick$results$stages
+quick$errors
+quick$decision_log
+quick$results$invariance$families
+# Review optional failed stages before interpreting a partial workflow.
+```
+
+Missingness is handled explicitly via complete cases (default) or pairwise
+correlations. Assess missing-data assumptions; pairwise matrices may be
+non-positive-definite. No minimum sample rule guarantees adequate precision.
+
+References used by a fitted result are stored in `fit$references` (APA 7), and
+appear in both report languages. Methodological sources include the user's EGA,
+UVA, entropy, wording, bifactor, loading and invariance papers, plus bootstrap,
+community detection and NCT papers. Full implementation evidence and current
+verification limits are recorded locally in `docs/psychometric-network-implementation.md`.

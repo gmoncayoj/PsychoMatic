@@ -17,3 +17,4 @@ A list of tidy tables.
 \description{
 Summarize an automated EFA result
 }
+\keyword{internal}

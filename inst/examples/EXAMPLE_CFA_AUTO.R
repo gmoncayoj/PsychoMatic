@@ -1,51 +1,14 @@
-###############################################################################################
-##                                                                                           ##
-##  PsychoMatic can automatically detect which model you are about to run.                   ##
-##  If it detects a second-order model, it will report the higher-order omega reliability.   ##
-##  If it detects a two-factor model, it will also calculate the hierarchical omega,         ##
-##  ECV, and PUC indices, and provide you with a final interpretation of the strength        ##
-##  of the general factor!                                                                   ##
-##                                                                                           ##
-###############################################################################################
-###############################################################################################
+# PsychoMatic 1.0.0: concise continuous CFA
 
+continuous_items <- lavaan::simulateData(
+  "general =~ 0.7*item1 + 0.7*item2 + 0.7*item3 + 0.7*item4 + 0.7*item5 + 0.7*item6",
+  sample.nobs = 200, seed = 2401
+)
 
-# Load a CSV file from a local folder
-data <- read.csv("C:/Users/YourUsername/Documents/project/data/database.csv")
-
-# Load an Excel file
-library(readxl)
-data <- read_excel("C:/Users/YourUsername/Documents/project/data/database.xlsx")
-
-
-library(PsychoMatic)
-
-# Define the model in Lavaan syntax
-# Unidimensional
-model <- 'F =~ i1 + i2 + i3 + i4 + i5'
-
-# Correlated factors
-model <- '
-  F1 =~ i1 + i2 + i3
-  F2 =~ i4 + i5 + i6
-'
-
-# Second order
-model <- '
-  F1 =~ i1 + i2 + i3
-  F2 =~ i4 + i5 + i6
-  SO  =~ F1 + F2
-'
-
-# Bifactor
-model <- '
-  GEN  =~ i1 + i2 + i3 + i4 + i5 + i6
-  F1 =~ i1 + i2 + i3
-  F2 =~ i4 + i5 + i6
-'
-
-# Run the automated AFC
-result <- cfa_auto(data = data, model = model)
-
-# View the complete psychometric report
-print(result)
+model <- "general =~ item1 + item2 + item3 + item4 + item5 + item6"
+cfa <- PsychoMatic::cfa_auto(
+  continuous_items,
+  model = model,
+  estimator = "ML",
+  language = "eng"
+)

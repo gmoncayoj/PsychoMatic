@@ -36,14 +36,24 @@ to compute a scale score.}
 \item{min_score, max_score}{Optional score range used when \code{reverse} is provided.}
 }
 \value{
-A list of class \code{psychomatic_scores} with score and reliability tables.
+A list of class \code{psychomatic_scores} with score and reliability
+tables and a \code{scale_map} linking unique keys to display labels.
 }
 \description{
 Computes scale scores using sum or mean scoring, optional reverse scoring,
 optional person-mean imputation, and a minimum valid-response rule.
 }
+\details{
+Eligible incomplete rows are prorated: mean scores use the available
+item mean and sum scores multiply that mean by the scale length. Missing
+values may remain \code{NA}, but non-finite responses are rejected before any
+scale is scored. Duplicate display labels receive stable unique keys
+recorded in \code{scale_map}.
+}
 \examples{
-items <- data.frame(item1 = c(1, 2, NA), item2 = c(2, 3, 4), item3 = c(3, 4, 5))
-score_scale(items, items = names(items), min_valid = 2 / 3)
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+score_scale(MY_DATA, items = c("R1", "R2", "R3", "R4"))
+}
 
 }

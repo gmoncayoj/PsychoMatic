@@ -1,7 +1,7 @@
-test_that("bundled example datasets have stable CRAN-friendly shapes", {
-  data("psychomatic_continuous", package = "PsychoMatic")
-  data("psychomatic_ordinal", package = "PsychoMatic")
-  data("psychomatic_multigroup", package = "PsychoMatic")
+test_that("internal data fixtures preserve regression-test shapes", {
+  load_data_fixture("psychomatic_continuous")
+  load_data_fixture("psychomatic_ordinal")
+  load_data_fixture("psychomatic_multigroup")
 
   expect_s3_class(psychomatic_continuous, "data.frame")
   expect_equal(dim(psychomatic_continuous), c(120L, 6L))
@@ -35,8 +35,7 @@ test_that("screen_items flags basic item-quality problems", {
   ) %in% names(screened)))
   expect_true(screened$zero_variance[screened$item == "item3"])
   expect_true(screened$probable_reverse[screened$item == "item2"])
-  removed_alias <- paste0("check", "_items")
-  expect_false(removed_alias %in% getNamespaceExports("PsychoMatic"))
+  expect_false("check_items" %in% getNamespaceExports("PsychoMatic"))
 })
 
 test_that("reverse_items recodes selected and detected reverse-keyed items", {
@@ -159,7 +158,7 @@ test_that("compare_models_auto compares candidate CFA models", {
 test_that("compare_models_auto supports WLSMV with scaled fit-index recommendations", {
   skip_if_not_installed("lavaan")
 
-  data("psychomatic_ordinal", package = "PsychoMatic")
+  load_data_fixture("psychomatic_ordinal")
   items <- psychomatic_ordinal[1:100, ]
   models <- list(
     one_factor = "f =~ ord1 + ord2 + ord3 + ord4 + ord5 + ord6",
@@ -187,7 +186,7 @@ test_that("compare_models_auto supports WLSMV with scaled fit-index recommendati
 test_that("irt_auto fits a small graded response model when mirt is available", {
   skip_if_not_installed("mirt")
 
-  data("psychomatic_ordinal", package = "PsychoMatic")
+  load_data_fixture("psychomatic_ordinal")
   result <- irt_auto(psychomatic_ordinal[1:80, 1:4], model = "grm")
 
   expect_s3_class(result, "psychomatic_irt")

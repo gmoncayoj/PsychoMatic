@@ -4,15 +4,23 @@
 \alias{export_efa}
 \title{Export EFA results to Excel or Word}
 \usage{
-export_efa(result, format = c("excel", "word"), file_name = NULL)
+export_efa(
+  result,
+  format = c("excel", "word"),
+  file_name = NULL,
+  overwrite = FALSE
+)
 }
 \arguments{
 \item{result}{Object of class \code{"efa_auto"} returned by \code{efa_auto()}.}
 
 \item{format}{Output format: \code{"excel"}, \code{"word"}, or both.}
 
-\item{file_name}{Optional output path or base path. If \code{NULL}, a temporary
-file path is generated.}
+\item{file_name}{Optional output path or base path. If \code{NULL}, a unique
+timestamped name is generated in the working directory (\code{getwd()}).}
+
+\item{overwrite}{If \code{TRUE}, existing output files may be replaced. The
+default is fail-closed.}
 }
 \value{
 The input \code{result}, invisibly.
@@ -23,18 +31,10 @@ the package-level report writer so EFA exports stay consistent with the
 integrated \code{psychomatic_report()} workflow.
 }
 \examples{
-if (identical(Sys.getenv("PSYCHOMATIC_RUN_SLOW_EXAMPLES"), "true") &&
-    requireNamespace("openxlsx", quietly = TRUE)) {
-  set.seed(1)
-  factor_score <- rnorm(80)
-  items <- data.frame(
-    item1 = factor_score + rnorm(80, sd = 0.4),
-    item2 = factor_score + rnorm(80, sd = 0.4),
-    item3 = factor_score + rnorm(80, sd = 0.4),
-    item4 = factor_score + rnorm(80, sd = 0.4)
-  )
-  result <- efa_auto(items, max_iter = 1, verbose = FALSE, language = "eng")
-  export_efa(result, format = "excel", file_name = tempfile("efa-", fileext = ".xlsx"))
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+result <- efa_auto(MY_DATA[, 3:14])
+export_efa(result, format = "excel", file_name = "EFA.xlsx")
 }
 
 }

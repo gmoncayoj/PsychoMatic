@@ -11,18 +11,94 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-`PsychoMatic` automates common psychometric workflows while keeping the
-underlying results available as R objects.
+# Purpose
 
-```{r}
-library(PsychoMatic)
+PsychoMatic automates bounded psychometric workflows with short syntax while
+keeping the evidence available for inspection. Automation is not a substitute
+for construct definition, sampling design, identification, or substantive
+judgment. Version 1.0.0 makes those boundaries more visible through structured
+result objects.
 
-items <- data.frame(
-  item1 = c(1, 2, 3, 4, 5),
-  item2 = c(2, 2, 3, 4, 5),
-  item3 = c(5, 4, 3, 2, 1)
+# Declare the data once
+
+The data below are simulated locally and must not be used for population
+inference.
+
+```{r data}
+set.seed(2401)
+latent <- matrix(stats::rnorm(300 * 3), ncol = 3)
+ordinal_items <- as.data.frame(sapply(seq_len(12), function(j) {
+  as.integer(cut(0.8 * latent[, ceiling(j / 4)] + stats::rnorm(300, sd = 0.6),
+                 breaks = c(-Inf, -1, -0.3, 0.3, 1, Inf), labels = FALSE))
+}))
+names(ordinal_items) <- sprintf("item%02d", 1:12)
+attr(ordinal_items, "reverse_keys") <- c("item03", "item07", "item11")
+ordinal_items[attr(ordinal_items, "reverse_keys")] <-
+  lapply(ordinal_items[attr(ordinal_items, "reverse_keys")], function(x) 6L - x)
+attr(ordinal_items, "factor_structure") <- list(
+  factor1 = names(ordinal_items)[1:4], factor2 = names(ordinal_items)[5:8],
+  factor3 = names(ordinal_items)[9:12]
 )
 
-desc_auto(items, language = "eng")
-cormat(items, type = "pearson")
+ranges <- stats::setNames(rep(list(c(1, 5)), ncol(ordinal_items)), names(ordinal_items))
+specification <- PsychoMatic::psychomatic_spec(
+  ordinal_items,
+  level = "ordinal",
+  reverse = attr(ordinal_items, "reverse_keys"),
+  ranges = ranges,
+  missing = "available",
+  language = "eng"
+)
+summary(specification)$items
 ```
+
+`psychomatic_spec()` records item selection, measurement level, ordered
+categories, reverse keys, valid ranges, grouping, metadata, and missing-data
+intent. Character, unordered factor, and logical encodings are not assigned an
+ordinal order silently.
+
+# Check and score
+
+```{r check-score}
+scores <- PsychoMatic::score_scale(
+  specification,
+  keys = attr(ordinal_items, "factor_structure"),
+  reverse = attr(ordinal_items, "reverse_keys"),
+  min_score = 1,
+  max_score = 5,
+  min_valid = 0.80
+)
+
+utils::head(scores$scores)
+```
+
+Incomplete eligible scores are prorated under the documented
+`min_valid` rule, so the scoring policy should be reported.
+
+# Structured evidence
+
+Most analytical objects in 1.0.0 inherit from `psychomatic_result`. They keep
+the call, requested and effective settings, data summary, raw results,
+structured warnings and errors, diagnostics, decision log, and conclusion.
+Numerical fields retain full precision (raw values); rounding is for display.
+A `not_evaluable` state must not be interpreted as evidence of no problem.
+
+An integrated workbook or document is created only by an explicit
+`psychomatic_report()` call. Report targets are checked before writing and
+existing files are not replaced unless `overwrite = TRUE` is chosen.
+
+```{r report, eval = FALSE}
+if (requireNamespace("openxlsx", quietly = TRUE)) {
+  output <- tempfile("psychomatic-introduction-", fileext = ".xlsx")
+  PsychoMatic::psychomatic_report(
+    scores,
+    format = "excel",
+    file_name = output,
+    overwrite = FALSE
+  )
+}
+```
+
+The export chunk is not evaluated while building the vignette because it is an
+optional file-writing demonstration; the installed example script exercises
+the same path in a temporary directory.

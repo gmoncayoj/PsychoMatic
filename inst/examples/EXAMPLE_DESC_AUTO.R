@@ -1,27 +1,23 @@
-##########################################################################
-##                                                                      ##
-## Using desc_auto(), you can calculate the mean, standard deviation,   ##
-## skewness, kurtosis, and response rate per item.                      ##
-##                                                                      ##
-##########################################################################
+# PsychoMatic 1.0.0: automated item descriptives
 
-# Load a CSV file from a local folder
-data <- read.csv("C:/Users/YourUsername/Documents/project/data/datadata.csv")
+set.seed(2401)
+latent <- matrix(stats::rnorm(300 * 3), ncol = 3)
+ordinal_items <- as.data.frame(sapply(seq_len(12), function(j) {
+  as.integer(cut(0.8 * latent[, ceiling(j / 4)] + stats::rnorm(300, sd = 0.6),
+                 breaks = c(-Inf, -1, -0.3, 0.3, 1, Inf), labels = FALSE))
+}))
+names(ordinal_items) <- sprintf("item%02d", 1:12)
+attr(ordinal_items, "reverse_keys") <- c("item03", "item07", "item11")
+ordinal_items[attr(ordinal_items, "reverse_keys")] <-
+  lapply(ordinal_items[attr(ordinal_items, "reverse_keys")], function(x) 6L - x)
+attr(ordinal_items, "factor_structure") <- list(
+  factor1 = names(ordinal_items)[1:4], factor2 = names(ordinal_items)[5:8],
+  factor3 = names(ordinal_items)[9:12]
+)
 
-# Load an Excel file
-library(readxl)
-data <- read_excel("C:/Users/YourUsername/Documents/project/data/datadata.xlsx")
-
-library(PsychoMatic)
-
-### Basic use (Spanish, no report)
-desc_auto(data)
-
-### With English labels
-desc_auto(data, language = "eng") # If you want Spanish, enter “esp”
-
-### Adjust decimal places
-desc_auto(data, digits = 2)
-
-### Export report to Excel
-desc_auto(data, report = TRUE, language = "eng")
+descriptives <- PsychoMatic::desc_auto(
+  ordinal_items,
+  language = "eng",
+  report = FALSE
+)
+utils::head(descriptives)

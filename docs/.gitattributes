@@ -1,0 +1,3 @@
+# Keep reference manuals and artwork byte-identical on every platform.
+*.pdf binary
+*.png binary

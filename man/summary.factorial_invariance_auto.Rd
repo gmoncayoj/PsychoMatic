@@ -12,8 +12,10 @@
 \item{...}{Additional unused arguments.}
 }
 \value{
-A list with fit, decisions, and conclusion.
+A list preserving raw fit evidence, decisions, diagnostics, criteria,
+structured conditions, conclusion, and references.
 }
 \description{
 Summarize a factorial invariance result
 }
+\keyword{internal}

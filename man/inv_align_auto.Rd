@@ -2,8 +2,6 @@
 % Please edit documentation in R/INV_ALIGN_AUTO.R
 \name{inv_align_auto}
 \alias{inv_align_auto}
-\alias{print.inv_align_auto_result}
-\alias{summary.inv_align_auto_result}
 \title{Automated alignment invariance}
 \usage{
 inv_align_auto(
@@ -13,7 +11,7 @@ inv_align_auto(
   group = NULL,
   sampling_weights = NULL,
   wgt = NULL,
-  language = c("esp", "eng"),
+  language = c("eng", "esp"),
   model = c("2PM", "1PM"),
   align.scale = c(lambda = 0.4, nu = 0.2),
   align.pow = c(lambda = 0.25, nu = 0.25),
@@ -27,12 +25,13 @@ inv_align_auto(
   vcov = NULL,
   digits = 3,
   config_args = list(),
-  alignment_args = list()
+  alignment_args = list(),
+  report = FALSE,
+  file_name = NULL,
+  format = "excel",
+  overwrite = FALSE,
+  verbose = TRUE
 )
-
-\method{print}{inv_align_auto_result}(x, ...)
-
-\method{summary}{inv_align_auto_result}(object, ...)
 }
 \arguments{
 \item{lambda, nu}{Parameter matrices for loadings and intercepts.}
@@ -61,11 +60,16 @@ inv_align_auto(
 
 \item{alignment_args}{Additional arguments for the alignment step.}
 
-\item{x}{Object returned by \code{inv_align_auto()}.}
+\item{report}{If \code{TRUE}, also save a reader-facing report.}
 
-\item{...}{Additional unused arguments.}
+\item{file_name}{Optional base path for exported files. When \code{NULL}, reports
+use a unique timestamped name in the working directory (\code{getwd()}).}
 
-\item{object}{Object returned by \code{inv_align_auto()}.}
+\item{format}{Report format: \code{"excel"}, \code{"word"}, or both.}
+
+\item{overwrite}{If \code{TRUE}, allow replacement of an existing report.}
+
+\item{verbose}{If \code{TRUE}, print results directly, including when assigned.}
 }
 \value{
 Object of class \code{inv_align_auto_result}.
@@ -75,11 +79,10 @@ Runs alignment optimization from loading and intercept matrices (\code{lambda} a
 \code{nu}) or from item-level data with a grouping vector.
 }
 \examples{
-if (requireNamespace("sirt", quietly = TRUE)) {
-  lambda <- matrix(c(0.70, 0.80, 0.75, 0.72, 0.78, 0.74), nrow = 2, byrow = TRUE)
-  nu <- matrix(c(0.00, 0.00, 0.00, 0.10, 0.05, 0.08), nrow = 2, byrow = TRUE)
-  res <- inv_align_auto(lambda = lambda, nu = nu, language = "eng")
-  summary(res)
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+inv_align_auto(data = MY_DATA[, 28:39], group = MY_DATA$Country,
+               language = "eng")
 }
 
 }

@@ -1,7 +1,7 @@
 Package: PsychoMatic
 Type: Package
 Title: Automated Psychometric Workflows and Reporting Tools
-Version: 0.3.0
+Version: 1.0.0
 Authors@R:
     person("Jose", "Gamarra-Moncayo",
            email = "gamarramoncayoj@gmail.com",
@@ -9,7 +9,8 @@ Authors@R:
            comment = c(ORCID = "0000-0002-0781-3616"))
 Description: Automates common psychometric workflows for applied researchers,
     including item descriptives, inter-item correlations, exploratory and
-    confirmatory factor analysis, reliability, multi-group measurement
+    confirmatory factor analysis, exploratory structural equation measurement
+    models, reliability, psychometric network analysis, multi-group measurement
     invariance, and alignment optimization. Decision heuristics are informed by
     procedures such as parallel analysis (Horn, 1965,
     <doi:10.1007/BF02289447>), multivariate normality diagnostics (Mardia,
@@ -19,32 +20,40 @@ Description: Automates common psychometric workflows for applied researchers,
     <doi:10.1080/10705511.2014.919210>), among others. Results can be returned as structured
     R objects and exported as bilingual reports for transparent analytical
     documentation.
-License: MIT + file LICENSE
+License: GPL (>= 3)
+Copyright: 2026 José Gamarra-Moncayo
 URL: https://github.com/gmoncayoj/PsychoMatic
 BugReports: https://github.com/gmoncayoj/PsychoMatic/issues
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports:
     GPArotation,
-    lavaan,
+    lavaan (>= 0.7-3),
     Matrix,
     psych,
     stats,
     utils
 Suggests:
+    bootnet (>= 1.6),
+    callr,
+    EGAnet (>= 2.0.7),
     flextable,
+    igraph,
     knitr,
     mirt,
-    MVN,
+    MVN (>= 6.3),
+    NetworkComparisonTest,
     officer,
     openxlsx,
+    pkgload,
+    qgraph,
     rmarkdown,
-    semTools,
-    sirt,
+    semTools (>= 0.5-9),
+    sirt (>= 4.2-133),
     testthat (>= 3.0.0),
-    writexl
+    writexl,
+    xml2
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-LazyData: true
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.0

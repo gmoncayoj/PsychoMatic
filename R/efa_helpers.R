@@ -10,53 +10,350 @@
 # FUNCIONES AUXILIARES
 # ============================================================
 
-# Test de Mardia para normalidad multivariada
-.efa_mardia <- function(X) {
+# Mardia statistics accumulated in row blocks. The largest temporary object is
+# `block_size x n`; an n x n matrix is never retained.
+.pm_mardia_block_ranges <- function(n, block_size) {
+  effective_size <- min(as.integer(block_size), 256L, as.integer(n) - 1L)
+  starts <- seq.int(1L, as.integer(n), by = effective_size)
+  lapply(
+    starts,
+    function(start) seq.int(start, min(as.integer(n), start + effective_size - 1L))
+  )
+}
+
+.pm_mardia_blockwise <- function(X, block_size = 256L) {
   X <- as.matrix(X)
+  if (!is.numeric(X) || length(dim(X)) != 2L || nrow(X) < 2L || ncol(X) < 1L) {
+    stop("`X` must be a numeric matrix with at least two rows.", call. = FALSE)
+  }
+  if (anyNA(X) || any(!is.finite(X))) {
+    stop("`X` must contain complete finite values.", call. = FALSE)
+  }
+  block_size <- .pm_validate_scalar_number(
+    block_size,
+    name = "block_size",
+    lower = 1,
+    integer = TRUE
+  )
+  block_size <- as.integer(block_size)
+
   n <- nrow(X)
   p <- ncol(X)
+  Xc <- sweep(X, 2L, colMeans(X), FUN = "-")
+  S <- crossprod(Xc) / n
+  S_inv <- tryCatch(
+    solve(S),
+    error = function(e) {
+      condition <- structure(
+        list(
+          message = paste0(
+            "Mardia statistics are not evaluable because the population ",
+            "covariance matrix is singular: ", conditionMessage(e)
+          ),
+          call = sys.call(-1L),
+          parent = e,
+          code = "mardia_singular_covariance"
+        ),
+        class = c("psychomatic_mardia_singular", "error", "condition")
+      )
+      stop(condition)
+    }
+  )
+  G <- Xc %*% S_inv
 
-  # Submuestrear si n es muy grande para evitar problemas de memoria
-  if (n > 5000) {
-    X <- X[sample(n, 5000), ]
-    n <- 5000L
+  cubic_sum <- 0
+  block_ranges <- .pm_mardia_block_ranges(n, block_size)
+  for (rows in block_ranges) {
+    block <- G[rows, , drop = FALSE] %*% t(Xc)
+    cubic_sum <- cubic_sum + sum(block^3)
   }
 
-  X_c <- scale(X, scale = FALSE)
-  S <- crossprod(X_c) / n
+  mahalanobis_sq <- rowSums(G * Xc)
+  b1p <- cubic_sum / n^2
+  b2p <- sum(mahalanobis_sq^2) / n
+  skew_df <- p * (p + 1) * (p + 2) / 6
+  correction <- 1
+  if (n < 20L) {
+    denominator <- n * ((n + 1) * (p + 1) - 6)
+    if (denominator > 0) {
+      correction <- ((p + 1) * (n + 1) * (n + 3)) / denominator
+    } else {
+      correction <- NA_real_
+    }
+  }
+  skew_statistic <- n * correction * b1p / 6
+  skew_p <- stats::pchisq(skew_statistic, skew_df, lower.tail = FALSE)
+  kurtosis_z <- (b2p - p * (p + 2)) / sqrt(8 * p * (p + 2) / n)
+  kurtosis_p <- 2 * stats::pnorm(abs(kurtosis_z), lower.tail = FALSE)
 
-  S_inv <- tryCatch(solve(S), error = function(e) {
-    ev <- eigen(S, symmetric = TRUE)
-    vals <- ev$values
-    vals[vals < 1e-10] <- Inf
-    ev$vectors %*% diag(1 / vals) %*% t(ev$vectors)
+  c(
+    b1p = b1p,
+    skew_statistic = skew_statistic,
+    skew_df = skew_df,
+    skew_p = skew_p,
+    b2p = b2p,
+    kurtosis_z = kurtosis_z,
+    kurtosis_p = kurtosis_p
+  )
+}
+
+# Test de Mardia para normalidad multivariada
+.efa_mardia <- function(X, block_size = 256L) {
+  statistics <- .pm_mardia_blockwise(X, block_size = block_size)
+  list(
+    skewness = unname(statistics[["b1p"]]),
+    skewness_chi = unname(statistics[["skew_statistic"]]),
+    skewness_df = unname(statistics[["skew_df"]]),
+    skewness_p = unname(statistics[["skew_p"]]),
+    kurtosis = unname(statistics[["b2p"]]),
+    kurtosis_z = unname(statistics[["kurtosis_z"]]),
+    kurtosis_p = unname(statistics[["kurtosis_p"]]),
+    normal = isTRUE(statistics[["skew_p"]] > 0.05) &&
+      isTRUE(statistics[["kurtosis_p"]] > 0.05),
+    block_size = as.integer(block_size),
+    covariance_divisor = "n"
+  )
+}
+
+.pm_parallel_count <- function(observed, simulated) {
+  observed <- as.numeric(observed)
+  simulated <- as.numeric(simulated)
+  length_common <- min(length(observed), length(simulated))
+  if (length_common == 0L) return(0L)
+  keep <- seq_len(length_common)
+  usable <- is.finite(observed[keep]) & is.finite(simulated[keep])
+  comparisons <- usable & observed[keep] > simulated[keep]
+  first_failure <- which(!comparisons)[1L]
+  if (is.na(first_failure)) as.integer(length_common) else as.integer(first_failure - 1L)
+}
+
+.efa_with_seed <- function(seed, code) {
+  if (is.null(seed)) return(eval.parent(substitute(code)))
+  seed <- .pm_validate_scalar_number(
+    seed,
+    name = "seed",
+    lower = 0,
+    upper = .Machine$integer.max,
+    integer = TRUE
+  )
+  had_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  if (had_seed) old_seed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  on.exit({
+    if (had_seed) {
+      assign(".Random.seed", old_seed, envir = .GlobalEnv)
+    } else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+      rm(".Random.seed", envir = .GlobalEnv)
+    }
+  }, add = TRUE)
+  set.seed(as.integer(seed))
+  eval.parent(substitute(code))
+}
+
+.efa_parallel_analysis <- function(R,
+                                   n_obs,
+                                   fm = "minres",
+                                   n_iter = 500L,
+                                   quantile = 0.95,
+                                   seed = NULL) {
+  n_iter <- .pm_validate_scalar_number(
+    n_iter,
+    name = "parallel_iter",
+    lower = 1,
+    integer = TRUE
+  )
+  quantile <- .pm_validate_scalar_number(
+    quantile,
+    name = "parallel_quantile",
+    lower = 0.5,
+    upper = 0.999
+  )
+  n_obs <- .pm_validate_scalar_number(n_obs, name = "n_obs", lower = 2, integer = TRUE)
+  R <- as.matrix(R)
+  if (!is.numeric(R) || nrow(R) != ncol(R) || ncol(R) < 2L ||
+      anyNA(R) || any(!is.finite(R))) {
+    stop("`R` must be a complete finite correlation matrix.", call. = FALSE)
+  }
+
+  observed_reduced <- R
+  diag(observed_reduced) <- .efa_smc_quiet(observed_reduced)
+  observed <- eigen(observed_reduced, symmetric = TRUE, only.values = TRUE)$values
+  p <- ncol(R)
+  factor_simulations <- .efa_with_seed(seed, {
+    simulations <- matrix(NA_real_, nrow = as.integer(n_iter), ncol = p)
+    for (iteration in seq_len(as.integer(n_iter))) {
+      simulated_data <- matrix(stats::rnorm(as.integer(n_obs) * p), ncol = p)
+      simulated_correlation <- stats::cor(simulated_data)
+      diag(simulated_correlation) <- .efa_smc_quiet(simulated_correlation)
+      simulations[iteration, ] <- eigen(
+        simulated_correlation,
+        symmetric = TRUE,
+        only.values = TRUE
+      )$values
+    }
+    simulations
   })
+  simulated_quantiles <- apply(
+    factor_simulations,
+    2L,
+    stats::quantile,
+    probs = quantile,
+    na.rm = TRUE,
+    names = FALSE
+  )
+  list(
+    n_factors = .pm_parallel_count(observed, simulated_quantiles),
+    observed = observed,
+    simulated = simulated_quantiles,
+    simulated_eigenvalues = factor_simulations,
+    n_iter = as.integer(n_iter),
+    quantile = quantile,
+    seed = if (is.null(seed)) NULL else as.integer(seed),
+    warnings = list(),
+    engine = "PsychoMatic factor-eigenvalue simulation with psych::smc",
+    extraction = fm,
+    target = "factor_eigenvalues"
+  )
+}
 
-  G <- X_c %*% S_inv
-  D <- tcrossprod(G, X_c)
+.efa_smc_quiet <- function(R) {
+  invisible(utils::capture.output(
+    values <- suppressMessages(psych::smc(R))
+  ))
+  values
+}
 
-  # Asimetria multivariada de Mardia
-  b1p <- sum(D^3) / n^2
-  chi_skew <- n * b1p / 6
-  df_skew <- p * (p + 1) * (p + 2) / 6
-  p_skew <- pchisq(chi_skew, df_skew, lower.tail = FALSE)
+.efa_numeric_ordered_codes <- function(data) {
+  is.data.frame(data) && ncol(data) > 0L && all(vapply(
+    data,
+    function(x) is.numeric(x) && identical(.pm_measurement_level(x), "ordinal"),
+    logical(1)
+  ))
+}
 
-  # Curtosis multivariada de Mardia
-  b2p <- sum(diag(D)^2) / n
-  z_kurt <- (b2p - p * (p + 2)) / sqrt(8 * p * (p + 2) / n)
-  p_kurt <- 2 * pnorm(abs(z_kurt), lower.tail = FALSE)
+.efa_estimate_correlations <- function(data,
+                                       method = c("pearson", "spearman", "polychoric", "tetrachoric"),
+                                       repair = c("none", "nearPD"),
+                                       polychoric_fun = psych::polychoric,
+                                       tetrachoric_fun = psych::tetrachoric) {
+  method <- match.arg(method)
+  repair <- match.arg(repair)
+  data <- .pm_as_data_frame(data)
+  if (ncol(data) < 2L) {
+    stop("At least two items are required to estimate correlations.", call. = FALSE)
+  }
+
+  type <- switch(
+    method,
+    pearson = "pearson",
+    spearman = "poly",
+    polychoric = "poly",
+    tetrachoric = "tetra"
+  )
+  prepared <- .cormat_prepare_data(data, type)
+  validation <- check_items(prepared, language = "eng")
+  .cormat_validate_observed_variation(prepared, validation$issues)
+  pairwise_n <- validation$diagnostics$pairwise_n
+  warnings <- list()
+  decisions <- .pm_decision(
+    "correlation_method",
+    method,
+    method,
+    "The requested correlation method was attempted."
+  )
+
+  captured <- .pm_capture_conditions(switch(
+      method,
+      pearson = stats::cor(prepared, use = "pairwise.complete.obs", method = "pearson"),
+      spearman = stats::cor(prepared, use = "pairwise.complete.obs", method = "spearman"),
+      polychoric = .cormat_extract_rho(
+        polychoric_fun(prepared, smooth = FALSE, progress = FALSE)
+      ),
+      tetrachoric = .cormat_extract_rho(
+        tetrachoric_fun(prepared, smooth = FALSE)
+      )
+    ))
+  warnings <- captured$warnings
+  estimate <- if (is.null(captured$error)) captured$value else captured$error
+
+  effective_method <- method
+  if (inherits(estimate, "condition")) {
+    original_condition <- estimate
+    if (!method %in% c("polychoric", "tetrachoric")) stop(original_condition)
+    if (!.efa_numeric_ordered_codes(data)) {
+      stop(
+        paste0(
+          "Correlation estimation failed and Pearson fallback is allowed only ",
+          "for numeric ordered codes. Original error: ", conditionMessage(original_condition)
+        ),
+        call. = FALSE
+      )
+    }
+    warnings <- c(list(original_condition), warnings)
+    estimate <- stats::cor(prepared, use = "pairwise.complete.obs", method = "pearson")
+    effective_method <- "pearson"
+    decisions <- rbind(
+      decisions,
+      .pm_decision(
+        "correlation_fallback",
+        method,
+        "pearson",
+        paste0("Original condition retained: ", conditionMessage(original_condition)),
+        "warning"
+      )
+    )
+  }
+
+  estimate <- as.matrix(estimate)
+  dimnames(estimate) <- list(names(prepared), names(prepared))
+  eigenvalues <- eigen(estimate, symmetric = TRUE, only.values = TRUE)$values
+  pre_repair_min <- min(eigenvalues)
+  tolerance <- sqrt(.Machine$double.eps)
+  needs_repair <- !is.finite(pre_repair_min) || pre_repair_min <= tolerance
+  repaired <- FALSE
+  if (needs_repair && identical(repair, "nearPD")) {
+    estimate <- as.matrix(Matrix::nearPD(estimate, corr = TRUE)$mat)
+    dimnames(estimate) <- list(names(prepared), names(prepared))
+    repaired <- TRUE
+    decisions <- rbind(
+      decisions,
+      .pm_decision(
+        "correlation_repair",
+        "nearPD",
+        "nearPD",
+        sprintf("Pre-repair minimum eigenvalue: %.8g.", pre_repair_min),
+        "warning"
+      )
+    )
+  } else if (needs_repair) {
+    decisions <- rbind(
+      decisions,
+      .pm_decision(
+        "correlation_repair",
+        "none",
+        "none",
+        sprintf("Matrix retained without repair; minimum eigenvalue: %.8g.", pre_repair_min),
+        "warning"
+      )
+    )
+  }
 
   list(
-    skewness = b1p, skewness_chi = chi_skew,
-    skewness_df = df_skew, skewness_p = p_skew,
-    kurtosis = b2p, kurtosis_z = z_kurt, kurtosis_p = p_kurt,
-    normal = (p_skew > 0.05) & (p_kurt > 0.05)
+    matrix = estimate,
+    requested_method = method,
+    effective_method = effective_method,
+    repaired = repaired,
+    repair_requested = repair,
+    pre_repair_min_eigenvalue = pre_repair_min,
+    warnings = warnings,
+    pairwise_n = pairwise_n,
+    diagnostics = validation$issues,
+    decision_log = decisions
   )
 }
 
 # Normalizar idioma del reporte
-.efa_normalize_language <- function(language = "esp") {
-  if (is.null(language) || length(language) == 0) return("esp")
+.efa_normalize_language <- function(language = "eng") {
+  if (is.null(language) || length(language) == 0) return("eng")
 
   language <- tolower(trimws(as.character(language[1])))
 
@@ -95,7 +392,7 @@
 }
 
 # Etiquetas y textos del reporte por consola
-.efa_labels <- function(language = "esp") {
+.efa_labels <- function(language = "eng") {
   language <- .efa_normalize_language(language)
 
   if (language == "eng") {
@@ -109,7 +406,7 @@
       removed_rows = "NOTE: Removed",
       rows_with_na = "row(s) with NA.",
       final_sample = "Final sample: n =",
-      analysis_title = "          OPTIMAL EXPLORATORY FACTOR ANALYSIS",
+      analysis_title = "          AUTOMATED EXPLORATORY FACTOR ANALYSIS",
       data_title = "--- DATA CHARACTERISTICS ---",
       sample_size = "  Sample size:            n =",
       n_items = "  Number of items:        p =",
@@ -133,7 +430,7 @@
       kmo_warning_items = "\n  WARNING - Items with individual KMO < 0.50:\n",
       kmo_warning_global = "KMO < 0.50: The data may not be adequate for factor analysis.",
       parallel_title = "--- PARALLEL ANALYSIS ---",
-      optimal_factors = "  Optimal number of factors:",
+      optimal_factors = "  Parallel-analysis factor count:",
       no_rotation = "  With a single factor, rotation is not applied.\n",
       rotation_label = "  Rotation: %s (%s)\n",
       oblique = "oblique",
@@ -180,9 +477,9 @@
       reliability_error = "  %s: Error while computing reliability.\n",
       spearman_brown = "\n  %s (2 items): Spearman-Brown = %.3f (r = %.3f)\n",
       reliability_na = "\n  %s: %d item - reliability not computable.\n",
-      optimal_solution_title = "\n  >>> OPTIMAL SOLUTION <<<\n\n",
-      optimal_solution_1 = "  The factor solution does not require additional\n",
-      optimal_solution_2 = "  respecifications. All quality criteria are met.\n\n",
+      optimal_solution_title = "\n  >>> SCREENING CRITERIA PASSED <<<\n\n",
+      optimal_solution_1 = "  The automated screen generated no additional\n",
+      optimal_solution_2 = "  flags; substantive interpretation remains necessary.\n\n",
       respec_title = "  RESPECIFICATION SUGGESTIONS\n",
       refs_title = "\n--- METHODOLOGICAL REFERENCES ---\n\n",
       refs_intro = "  The decisions in this analysis are based on:\n\n",
@@ -207,7 +504,7 @@
     removed_rows = "NOTA: Se eliminaron",
     rows_with_na = "fila(s) con NA.",
     final_sample = "Muestra final: n =",
-    analysis_title = "          ANALISIS FACTORIAL EXPLORATORIO OPTIMO",
+    analysis_title = "          ANALISIS FACTORIAL EXPLORATORIO AUTOMATIZADO",
     data_title = "--- CARACTERISTICAS DE LOS DATOS ---",
     sample_size = "  Tamano de muestra:        n =",
     n_items = "  Numero de items:          p =",
@@ -231,7 +528,7 @@
     kmo_warning_items = "\n  ADVERTENCIA - Items con KMO individual < 0.50:\n",
     kmo_warning_global = "KMO < 0.50: Los datos pueden no ser adecuados para analisis factorial.",
     parallel_title = "--- ANALISIS PARALELO ---",
-    optimal_factors = "  Numero optimo de factores:",
+    optimal_factors = "  Factores segun analisis paralelo:",
     no_rotation = "  Con 1 solo factor, no se aplica rotacion.\n",
     rotation_label = "  Rotacion: %s (%s)\n",
     oblique = "oblicua",
@@ -278,9 +575,9 @@
     reliability_error = "  %s: Error al calcular confiabilidad.\n",
     spearman_brown = "\n  %s (2 items): Spearman-Brown = %.3f (r = %.3f)\n",
     reliability_na = "\n  %s: %d item - confiabilidad no calculable.\n",
-    optimal_solution_title = "\n  >>> SOLUCION OPTIMA <<<\n\n",
-    optimal_solution_1 = "  La solucion factorial no requiere reespecificaciones\n",
-    optimal_solution_2 = "  adicionales. Todos los criterios de calidad se cumplen.\n\n",
+    optimal_solution_title = "\n  >>> CRITERIOS DE CRIBADO CUMPLIDOS <<<\n\n",
+    optimal_solution_1 = "  El cribado automatizado no genero alertas adicionales;\n",
+    optimal_solution_2 = "  sigue siendo necesaria la interpretacion sustantiva.\n\n",
     respec_title = "  SUGERENCIAS DE REESPECIFICACION\n",
     refs_title = "\n--- REFERENCIAS METODOLOGICAS ---\n\n",
     refs_intro = "  Las decisiones de este analisis se fundamentan en:\n\n",
@@ -296,7 +593,7 @@
 }
 
 # Interpretacion del KMO
-.efa_interpretar_kmo <- function(kmo, language = "esp") {
+.efa_interpretar_kmo <- function(kmo, language = "eng") {
   language <- .efa_normalize_language(language)
 
   if (language == "eng") {
@@ -323,7 +620,7 @@
 # violaciones de normalidad. Se prioriza siempre, combinandolo
 # con la matriz de correlacion apropiada segun el tipo de datos.
 .efa_seleccionar_estimador <- function(es_ordinal, normalidad_ok, n, p,
-                                      language = "esp") {
+                                      language = "eng") {
   language <- .efa_normalize_language(language)
 
   if (es_ordinal) {
@@ -386,7 +683,7 @@
 # Evaluacion de items problematicos
 .efa_evaluar_items <- function(cargas, comunalidades, carga_min,
                                comunalidad_min, dif_cargas_cruzadas,
-                               n_factores, language = "esp") {
+                               n_factores, language = "eng") {
   language <- .efa_normalize_language(language)
   problemas <- data.frame(
     Item = character(), Razon = character(),
@@ -472,7 +769,7 @@
 .efa_sugerencias <- function(efa_obj, distribucion, fiabilidad, kmo_final,
                              bartlett_final, n_factores, n, items_eliminados,
                              carga_min, var_explicada, p_original,
-                             language = "esp") {
+                             language = "eng") {
   language <- .efa_normalize_language(language)
   sug <- character()
 

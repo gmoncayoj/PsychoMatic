@@ -9,7 +9,13 @@ screen_items(
   digits = 3,
   floor_cutoff = 0.8,
   ceiling_cutoff = 0.8,
-  min_item_rest = -0.1
+  min_item_rest = -0.1,
+  language = "eng",
+  report = FALSE,
+  format = "excel",
+  file_name = NULL,
+  overwrite = FALSE,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -23,6 +29,18 @@ screen_items(
 
 \item{min_item_rest}{Item-rest correlation below which an item is flagged as
 probably reverse keyed or inconsistent with the remaining items.}
+
+\item{language}{Output language: \code{"eng"} (default) or \code{"esp"}.}
+
+\item{report}{Generate a report, or supply an output path.}
+
+\item{format}{Report format: \code{"excel"}, \code{"word"}, or both.}
+
+\item{file_name}{Output file name, without extension when using both formats.}
+
+\item{overwrite}{Allow replacing an existing report (default \code{FALSE}).}
+
+\item{verbose}{Show results directly in the console (default \code{TRUE}).}
 }
 \value{
 A data frame of class \code{psychomatic_item_screen}.
@@ -32,12 +50,14 @@ Computes a compact item-screening table for numeric psychometric items:
 missingness, variance, distribution shape, floor and ceiling proportions,
 item-rest correlations, and probable reverse-keyed items.
 }
+\details{
+Displayed percentages are on a 0--100 scale. The returned data frame
+retains its original English column names and 0--1 proportions for compatibility.
+}
 \examples{
-items <- data.frame(
-  item1 = c(1, 2, 3, 4, 5),
-  item2 = c(5, 4, 3, 2, 1),
-  item3 = c(1, 1, 2, 2, 3)
-)
-screen_items(items)
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+screen_items(MY_DATA[, 3:14])
+}
 
 }

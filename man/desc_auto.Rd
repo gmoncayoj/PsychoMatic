@@ -2,31 +2,53 @@
 % Please edit documentation in R/DESC_AUTO.R
 \name{desc_auto}
 \alias{desc_auto}
-\title{Automated descriptives for numeric items}
+\title{Automated descriptives for psychometric items}
 \usage{
-desc_auto(data, digits = 2, language = "esp", report = FALSE)
+desc_auto(
+  data,
+  digits = 3,
+  language = "eng",
+  report = FALSE,
+  file_name = NULL,
+  overwrite = FALSE,
+  format = "excel",
+  verbose = TRUE
+)
 }
 \arguments{
-\item{data}{Data frame containing the item responses.}
+\item{data}{Data frame, matrix, or \code{psychomatic_spec} containing item
+responses.}
 
-\item{digits}{Number of decimal places used in the report.}
+\item{digits}{Number of decimal places used in the report. Returned numeric
+values are not rounded.}
 
 \item{language}{Report language: \code{"esp"} or \code{"eng"}.}
 
-\item{report}{If \code{TRUE}, exports an Excel file.}
+\item{report}{If \code{TRUE}, save a report in the requested format.}
+
+\item{file_name}{Optional Excel output path. If \code{NULL}, a timestamped name is
+generated in the working directory (\code{getwd()}) when \code{report = TRUE}.}
+
+\item{overwrite}{If \code{TRUE}, an existing report file may be replaced.}
+
+\item{format}{Report format: \code{"excel"}, \code{"word"}, or both.}
+
+\item{verbose}{If \code{TRUE}, print results directly, including when assigned.}
 }
 \value{
-Data frame with descriptive statistics and category percentages.
+A compact data frame with one row per item. A long data frame with
+columns \code{item}, \code{category}, \code{n}, and \code{percent} is available from the
+\code{response_percentages} attribute.
 }
 \description{
-Computes descriptive statistics and response percentages for numeric item
-columns in a data frame. Results can optionally be exported to Excel.
+Computes compact descriptive statistics for numeric and ordered item columns.
+Ordinal response percentages are retained as a separate long table. Results
+can optionally be exported to Excel.
 }
 \examples{
-items <- data.frame(
-  item1 = c(1, 2, 3, 4, 5),
-  item2 = c(2, 2, 3, 4, 5)
-)
-desc_auto(items, language = "eng")
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+desc_auto(MY_DATA[, 3:14])
+}
 
 }

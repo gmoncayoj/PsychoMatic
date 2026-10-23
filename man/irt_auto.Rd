@@ -11,7 +11,12 @@ irt_auto(
   itemtype = NULL,
   technical = list(),
   language = c("eng", "esp"),
-  digits = 3
+  digits = 3,
+  report = FALSE,
+  file_name = NULL,
+  format = "excel",
+  overwrite = FALSE,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -29,6 +34,17 @@ irt_auto(
 \item{language}{Interpretation language: \code{"eng"} or \code{"esp"}.}
 
 \item{digits}{Number of decimal places used in interpretation tables.}
+
+\item{report}{If \code{TRUE}, also save a reader-facing report.}
+
+\item{file_name}{Optional base path for exported files. When \code{NULL}, reports
+use a unique timestamped name in the working directory (\code{getwd()}).}
+
+\item{format}{Report format: \code{"excel"}, \code{"word"}, or both.}
+
+\item{overwrite}{If \code{TRUE}, allow replacement of an existing report.}
+
+\item{verbose}{If \code{TRUE}, print results directly, including when assigned.}
 }
 \value{
 A list of class \code{psychomatic_irt} with fitted model, item
@@ -40,10 +56,9 @@ Fits a one-dimensional Rasch, 2PL, or graded response model using \code{mirt}.
 The dependency is optional and is loaded only when this function is called.
 }
 \examples{
-if (identical(Sys.getenv("PSYCHOMATIC_RUN_SLOW_EXAMPLES"), "true") &&
-    requireNamespace("mirt", quietly = TRUE)) {
-  data(psychomatic_ordinal)
-  irt_auto(psychomatic_ordinal[1:60, 1:4], model = "grm")
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+irt_auto(MY_DATA[, 3:14])
 }
 
 }

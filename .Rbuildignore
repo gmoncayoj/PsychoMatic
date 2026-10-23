@@ -14,3 +14,16 @@
 ^\.r-lib$
 ^\.r-lib/
 ^PsychoMatic_.*[.]tar[.]gz$
+^tests/testthat/test-release-assets[.]R$
+^docs$
+^docs/
+^data-raw$
+^data-raw/
+^\.github$
+^\.github/
+^\.superpowers$
+^\.superpowers/
+^\.agents$
+^\.agents/
+^\.codex$
+^\.codex/

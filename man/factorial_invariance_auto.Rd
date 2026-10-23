@@ -2,52 +2,100 @@
 % Please edit documentation in R/INV_FAC_AUTO.R
 \name{factorial_invariance_auto}
 \alias{factorial_invariance_auto}
-\title{Automated multi-group measurement invariance}
+\title{Automated complete measurement invariance}
 \usage{
 factorial_invariance_auto(
   data,
   group,
   model,
-  language = c("esp", "eng"),
+  language = c("eng", "esp"),
   estimator = "auto",
   ordered = NULL,
-  report = FALSE
+  report = FALSE,
+  criteria = "auto",
+  missing = "auto",
+  min_group_n = 20L,
+  overwrite = FALSE,
+  digits = 3,
+  file_name = NULL,
+  format = "excel",
+  verbose = TRUE,
+  fit_variant = c("scaled", "robust")
 )
 }
 \arguments{
-\item{data}{Data frame containing the items and grouping variable.}
+\item{data}{A data frame, matrix, or \code{psychomatic_spec} containing indicators
+and (unless supplied as a vector) the grouping variable.}
 
-\item{group}{Name or expression identifying the grouping variable.}
+\item{group}{A grouping-column name or symbol, one positive column index, or
+a vector with one value per original row.}
 
-\item{model}{Model syntax written for \code{lavaan}.}
+\item{model}{One lavaan CFA model string.}
 
-\item{language}{Report language: \code{"esp"} or \code{"eng"}.}
+\item{language}{Output language, Spanish (\code{"esp"}) or English (\code{"eng"}).}
 
-\item{estimator}{Requested estimator or \code{"auto"} for automatic selection.}
+\item{estimator}{\code{"auto"}, \code{"ML"}, \code{"MLR"}, \code{"ULS"}, \code{"WLSMV"}, or
+\code{"ULSMV"}. Explicit WLSMV/ULSMV default to \code{ordered = TRUE} and
+listwise handling. Automatic selection uses WLSMV for detected ordinal
+responses, otherwise ML when all groups have favourable Mardia evidence
+and MLR otherwise. ML/MLR/ULS analyze numeric scores as continuous.}
 
-\item{ordered}{Optional ordered-variable configuration.}
+\item{ordered}{\code{NULL}, \code{TRUE}/\code{FALSE}, or indicator names/indices. With
+explicit WLSMV/ULSMV, \code{NULL} declares every model indicator ordered.
+\code{FALSE} explicitly requests numeric-score estimation instead. Character
+and unordered-factor responses require declared levels. For an identified
+threshold/loading invariance sequence use \code{\link[=ordinal_invariance_auto]{ordinal_invariance_auto()}}.}
 
-\item{report}{\code{FALSE}, \code{TRUE}, or a file path for exporting a report.}
+\item{report}{\code{FALSE}, \code{TRUE} for a report in \code{getwd()}, or an explicit
+Excel path.}
+
+\item{criteria}{\code{"auto"} or a fully named nonnegative numeric vector with
+\code{cfi}, \code{rmsea}, \code{srmr_loading}, and \code{srmr_other}; the three optional
+\verb{configural_*} entries customize the configural gate.}
+
+\item{missing}{\code{"auto"}, \code{"fiml"}, or \code{"listwise"}. Categorical analyses
+require listwise handling.}
+
+\item{min_group_n}{Operational minimum analytic group size. The default of
+20 does not guarantee power, identification, or stable estimation.}
+
+\item{overwrite}{Whether an existing explicit report path may be replaced.}
+
+\item{digits}{Decimal places in console and reports; stored values keep full precision.}
+
+\item{file_name}{Optional base path for exported files. When \code{NULL}, reports
+use a unique timestamped name in the working directory (\code{getwd()}).}
+
+\item{format}{Report format: \code{"excel"}, \code{"word"}, or both.}
+
+\item{verbose}{If \code{TRUE}, print results directly, including when assigned.}
+
+\item{fit_variant}{\code{"scaled"} (default) or \code{"robust"} for CFI and RMSEA,
+their changes, decisions and reports. Corrected estimators always use scaled
+chi-square, df and p; SRMR is uncorrected. Uncorrected ML/ULS use base
+indices by default. Unavailable requested robust indices remain missing;
+they are never silently replaced by scaled or base indices.}
 }
 \value{
-Object of class \code{factorial_invariance_auto}, returned invisibly.
+An object of classes \code{factorial_invariance_auto} and
+\code{psychomatic_result}. Raw values are not rounded. Direct legacy aliases are
+retained; \verb{$warnings} is now a structured data frame and \verb{$warnings_list}
+(also \verb{$notes}) is the character compatibility view.
 }
 \description{
-Sequentially fits configural, metric, scalar, and strict invariance models to
-evaluate the highest level of measurement invariance supported by the data.
+Fits configural, metric, scalar and strict multi-group CFA models using
+native lavaan CFA calls and their default marker identification. WLSMV/ULSMV
+default to ordered responses; only the four requested stages are fitted. The
+function automates estimator selection and syntax construction while keeping
+identification, fit variants, admissibility, and model-comparison evidence
+available for inspection. Fit-change cutoffs are descriptive heuristics, not
+proof of invariance.
 }
 \examples{
-if (identical(Sys.getenv("PSYCHOMATIC_RUN_SLOW_EXAMPLES"), "true")) {
-  model <- "visual =~ x1 + x2 + x3"
-  rows <- c(1:25, 160:184)
-  items <- lavaan::HolzingerSwineford1939[rows, c("school", "x1", "x2", "x3")]
-  factorial_invariance_auto(
-    items,
-    group = "school",
-    model = model,
-    estimator = "ML",
-    language = "eng"
-  )
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+model <- "F1 =~ R1 + R2 + R3 + R4"
+factorial_invariance_auto(MY_DATA, group = "Country", model = model)
 }
 
 }

@@ -4,7 +4,13 @@
 \alias{export_cfa}
 \title{Export CFA results to Excel or Word}
 \usage{
-export_cfa(result, format = c("excel", "word"), file_name = NULL, digits = 3)
+export_cfa(
+  result,
+  format = c("excel", "word"),
+  file_name = NULL,
+  digits = 3,
+  overwrite = FALSE
+)
 }
 \arguments{
 \item{result}{Object of class \code{"cfa_auto"} returned by \code{cfa_auto()}.}
@@ -12,25 +18,27 @@ export_cfa(result, format = c("excel", "word"), file_name = NULL, digits = 3)
 \item{format}{\code{"excel"} or \code{"word"} (you can provide both).}
 
 \item{file_name}{Optional base file name without extension. If \code{NULL}, a
-timestamped name is generated automatically.}
+unique timestamped name is generated in the working directory (\code{getwd()}).}
 
-\item{digits}{Number of decimal places used when exporting the Word report.}
+\item{digits}{Number of decimal places used to format report values. Raw
+numeric values remain unchanged in Excel files.}
+
+\item{overwrite}{If \code{TRUE}, existing output files may be replaced.}
 }
 \value{
-The input \code{result}, invisibly.
+Normalized output path, invisibly. When both formats are requested,
+returns a named character vector; Excel output includes a \code{sheet_map}
+attribute.
 }
 \description{
 Export CFA results to Excel or Word
 }
 \examples{
-if (identical(Sys.getenv("PSYCHOMATIC_RUN_SLOW_EXAMPLES"), "true") &&
-    requireNamespace("semTools", quietly = TRUE) &&
-    requireNamespace("MVN", quietly = TRUE) &&
-    requireNamespace("openxlsx", quietly = TRUE)) {
-  model <- "visual =~ x1 + x2 + x3"
-  items <- lavaan::HolzingerSwineford1939[1:80, c("x1", "x2", "x3")]
-  result <- cfa_auto(items, model = model, estimator = "ML", language = "eng")
-  export_cfa(result, format = "excel", file_name = tempfile("cfa-", fileext = ".xlsx"))
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+model <- "F1 =~ R1 + R2 + R3 + R4"
+result <- cfa_auto(MY_DATA, model = model)
+export_cfa(result, format = "word", file_name = "CFA.docx")
 }
 
 }

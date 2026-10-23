@@ -1,8 +1,8 @@
 ---
-title: "Measurement Invariance Workflow"
+title: "Complete and Partial Measurement Invariance"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Measurement Invariance Workflow}
+  %\VignetteIndexEntry{Complete and Partial Measurement Invariance}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,45 +11,162 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-# Measurement Invariance Workflow
+# Complete invariance
 
-This vignette shows how to prepare a small multigroup dataset for measurement
-invariance analysis.
+The locally simulated multigroup data are continuous and unifactorial.
 
-```{r setup}
-library(PsychoMatic)
-data(psychomatic_multigroup)
-```
-
-```{r structure}
-table(psychomatic_multigroup$group)
-head(psychomatic_multigroup)
-```
-
-## Model
-
-```{r model}
-model <- "
-factor1 =~ mg1 + mg2 + mg3
-factor2 =~ mg4 + mg5 + mg6
-"
-```
-
-## Sequential Invariance Testing
-
-The full workflow fits configural, metric, scalar, and strict models. It is not
-evaluated by default in CRAN vignette checks because multi-group CFA can be
-computationally heavier than a minimal example.
-
-```{r invariance, eval = FALSE}
-invariance <- factorial_invariance_auto(
-  psychomatic_multigroup,
-  group = "group",
-  model = model,
-  estimator = "ML",
-  language = "eng",
-  report = FALSE
+```{r continuous-data}
+grouped_items <- lavaan::simulateData(
+  "general =~ 0.7*mg1 + 0.7*mg2 + 0.7*mg3 + 0.7*mg4 + 0.7*mg5 + 0.7*mg6",
+  sample.nobs = 400, seed = 2402
 )
-summary(invariance)
+grouped_items$group <- factor(rep(c("A", "B"), each = 200))
+table(grouped_items$group)
+continuous_model <- "general =~ mg1 + mg2 + mg3 + mg4 + mg5 + mg6"
 ```
 
+```{r complete, eval = FALSE}
+complete <- PsychoMatic::factorial_invariance_auto(
+  grouped_items,
+  group = "group",
+  model = continuous_model,
+  estimator = "ML",
+  missing = "auto",
+  language = "eng"
+)
+summary(complete)$fit
+```
+
+The complete sequence is not evaluated during vignette construction because it
+fits four multigroup models. The installed example executes it. One frozen
+analytic sample is used across configural, metric, scalar, and strict stages.
+WLSMV/ULSMV default to ordered responses, with lavaan's native marker
+identification and delta parameterization. ML/MLR/ULS analyze numeric scores.
+No separate threshold-equality stage is fitted in this four-stage workflow;
+use `ordinal_invariance_auto()` for identified threshold/loading comparisons.
+Native ordinal scalar/strict restrictions may not yield independent tests.
+`fit_variant = "scaled"` is the default; `"robust"` selects robust CFI/RMSEA
+for fit, changes, decisions and reports. Chi-square remains scaled for corrected
+estimators and SRMR remains base; unavailable requested robust indices are missing.
+Requested/effective estimator, missing-data handling, identification,
+convergence, admissibility, and comparability are retained.
+
+Changes in CFI, RMSEA, and SRMR use Chen-style descriptive heuristics.
+They are not hypothesis tests and do not prove measurement invariance. The
+operational minimum group size is a safety floor, not a power guarantee.
+
+# Ordered indicators and identification
+
+```{r ordinal-data}
+set.seed(2402)
+latent <- matrix(stats::rnorm(600 * 3), ncol = 3)
+group <- factor(rep(c("A", "B"), each = 300))
+ordinal_groups <- as.data.frame(sapply(seq_len(9), function(j) {
+  response <- 0.8 * latent[, ceiling(j / 3)] + stats::rnorm(600, sd = 0.6)
+  values <- integer(600)
+  for (g in levels(group)) {
+    thresholds <- c(-Inf, -1, -0.3, 0.3, 1, Inf)
+    if (j == 3 && g == "B") thresholds[4] <- 0.8
+    values[group == g] <- cut(response[group == g], thresholds, labels = FALSE)
+  }
+  values
+}))
+names(ordinal_groups) <- paste0("i", 1:9)
+ordinal_groups[] <- lapply(ordinal_groups, ordered, levels = 1:5)
+ordinal_groups$group <- group
+ordinal_model <- paste(
+  "factor1 =~ i1 + i2 + i3",
+  "factor2 =~ i4 + i5 + i6",
+  "factor3 =~ i7 + i8 + i9",
+  sep = "\n"
+)
+```
+
+`ordinal_groups` contains ordered five-category indicators and a generated
+group-B difference in the third threshold of `i3`. For ordinal analyses, the
+output distinguishes requested WLSMV from lavaan's effective estimator,
+records theta parameterization and identification metadata, and uses stage
+families appropriate to thresholds and loadings. Binary items cannot be forced
+through separate stages that are not jointly identified.
+
+# Three-stage ordinal invariance
+
+The three-stage ordinal workflow is available separately:
+
+```{r ordinal-complete, eval = FALSE}
+ordinal_complete <- PsychoMatic::ordinal_invariance_auto(
+  ordinal_groups, group = "group", model = ordinal_model,
+  estimator = "WLSMV", language = "eng"
+)
+summary(ordinal_complete)$fit
+```
+
+It tests configural, equal thresholds, and equal thresholds and loadings, with
+Wu and Estabrook (2016) identification as illustrated by Svetina et al. (2020).
+Only WLSMV and ULSMV are accepted (`auto` selects WLSMV). Chen (2007) change
+cutoffs are descriptive extrapolations to ordinal estimation. Changes are signed
+current-minus-previous differences. A separate threshold test with no additional
+degrees of freedom is not evidence for invariance.
+
+# Researcher-directed partial invariance
+
+Use `invariance_partial()` only when the release has an a priori or otherwise
+defensible substantive rationale. It does not inspect modification indices to
+free parameters automatically.
+
+By default, partial invariance uses `workflow = "factorial"`, matching the
+native lavaan calls, preparation and fit variants in
+`factorial_invariance_auto()`. Targets are metric, scalar and strict.
+WLSMV/ULSMV default to ordered indicators. `fit_variant = "scaled"` is the
+default; explicit `"robust"` controls CFI/RMSEA, changes and decisions without
+substitution if unavailable. Lower-stage releases propagate to the matched
+prerequisite. The following threshold example uses `workflow = "ordinal"`
+explicitly for the identified semTools procedure.
+
+```{r partial, eval = FALSE}
+if (requireNamespace("semTools", quietly = TRUE)) {
+  partial <- PsychoMatic::invariance_partial(
+    ordinal_groups,
+    group = "group",
+    model = ordinal_model,
+    free = "i3 | t3",
+    rationale = "The simulation preregisters a group-B shift in this threshold.",
+    stage = "thresholds",
+    workflow = "ordinal",
+    measurement = "ordinal",
+    estimator = "WLSMV",
+    ordered = paste0("i", 1:9),
+    min_anchor_items = 2,
+    language = "eng"
+  )
+  summary(partial)$releases
+  summary(partial)$comparisons
+}
+```
+
+The partial example is not evaluated during vignette construction because it
+fits multiple ordinal multigroup models and uses an optional package. The
+function validates release grammar and equality families, requires rationale,
+verifies that releases actually took effect, preserves at least the requested
+number of anchor items, checks nesting and a common fit-index variant, and
+fails closed when a prerequisite or target model is not evaluable.
+
+The full-to-partial same-stage comparison is descriptive. A result labelled
+`partial_invariance_supported` still requires substantive review and should not
+be reported as proof. Missing cases, sparse categories, nonconvergence, fixed
+reference parameters, or insufficient degrees of freedom can all make the
+comparison `not_evaluable`.
+
+# Which workflow comes next?
+
+- Use complete invariance when exact equality constraints are plausible and
+  the number of groups is manageable.
+- Use researcher-directed partial invariance for specific, justified releases
+  while retaining defensible anchors.
+- Consider `inv_align_auto()` for an approximate alignment question,
+  particularly with many groups; alignment is not an automatic repair for a
+  failed exact-invariance sequence.
+
+All three workflows preserve raw values at full precision. Display rounding and
+Chen thresholds are decision aids, not replacements for reporting model syntax,
+sample handling, estimator, identification, released parameters, and reasons.

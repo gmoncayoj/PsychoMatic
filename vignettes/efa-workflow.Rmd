@@ -11,51 +11,84 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-# Exploratory Factor Analysis Workflow
+# Prepare and check ordinal items
 
-This vignette shows a compact screening-to-EFA workflow with the example ordinal
-dataset included in `PsychoMatic`.
+The example creates three simulated domains with explicit reverse keys.
 
 ```{r setup}
-library(PsychoMatic)
-data(psychomatic_ordinal)
-```
-
-## Item Screening
-
-```{r item-screening}
-screen_items(psychomatic_ordinal)
-```
-
-## Reverse Scoring And Scale Scores
-
-If an item is theoretically reverse keyed, reverse it before computing scale
-scores.
-
-```{r scoring}
-scored <- score_scale(
-  psychomatic_ordinal,
-  items = names(psychomatic_ordinal),
-  method = "mean",
-  min_valid = 0.80
+set.seed(2401)
+latent <- matrix(stats::rnorm(300 * 3), ncol = 3)
+ordinal_items <- as.data.frame(sapply(seq_len(12), function(j) {
+  as.integer(cut(0.8 * latent[, ceiling(j / 4)] + stats::rnorm(300, sd = 0.6),
+                 breaks = c(-Inf, -1, -0.3, 0.3, 1, Inf), labels = FALSE))
+}))
+names(ordinal_items) <- sprintf("item%02d", 1:12)
+attr(ordinal_items, "reverse_keys") <- c("item03", "item07", "item11")
+ordinal_items[attr(ordinal_items, "reverse_keys")] <-
+  lapply(ordinal_items[attr(ordinal_items, "reverse_keys")], function(x) 6L - x)
+attr(ordinal_items, "factor_structure") <- list(
+  factor1 = names(ordinal_items)[1:4], factor2 = names(ordinal_items)[5:8],
+  factor3 = names(ordinal_items)[9:12]
 )
-scored$reliability
+
+items <- PsychoMatic::reverse_items(
+  ordinal_items,
+  items = attr(ordinal_items, "reverse_keys"),
+  min_score = 1,
+  max_score = 5,
+  overwrite = TRUE
+)
+specification <- PsychoMatic::psychomatic_spec(
+  items,
+  level = "ordinal",
+  missing = "available",
+  language = "eng"
+)
 ```
 
-## Exploratory Factor Analysis
+An explicit ordered declaration prevents integer codes from carrying more
+meaning than the researcher intended. Item membership still requires
+substantive judgment.
 
-The full automated EFA routine can be run as follows. It is not evaluated during
-CRAN vignette checks because parallel analysis and polychoric correlations may
-take longer on constrained machines.
+# Reliability is not dimensionality
 
-```{r efa-auto, eval = FALSE}
-efa_result <- efa_auto(
-  psychomatic_ordinal,
+```{r reliability}
+reliability <- PsychoMatic::reliability_auto(
+  items,
+  items = attr(ordinal_items, "factor_structure")$factor1,
+  level = "ordinal",
+  language = "eng"
+)
+summary(reliability)$coefficients
+```
+
+The example estimates reliability within the first known simulated domain, not
+across the three-domain item set. `reliability_auto()` labels each coefficient's
+estimand and correlation basis. Coefficient alpha, ordinal alpha, and omega rely
+on different assumptions and none demonstrates unidimensionality or validity
+by itself.
+
+# EFA with non-destructive screening
+
+```{r efa, eval = FALSE}
+efa <- PsychoMatic::efa_auto(
+  specification,
   rotation = "oblique",
-  max_iter = 3,
+  refine = "suggest",
+  parallel_iter = 500,
+  seed = 2401,
   verbose = FALSE,
   language = "eng"
 )
-summary(efa_result)
+summary(efa)$loadings
+summary(efa)$decisions
 ```
 
+This model-fitting chunk is not evaluated during vignette construction because
+polychoric estimation plus parallel simulation can be slow on constrained CRAN
+workers. `refine = "suggest"` retains all items and reports flags; automatic
+removal is not a replacement for content review or cross-validation. Loading,
+communality, cross-loading, KMO, Bartlett, and retention cutoffs are heuristics.
+Inspect requested/effective correlation methods, missing-case counts, repaired
+status, conditions, and any `not_evaluable` configuration before interpreting
+the factor solution.

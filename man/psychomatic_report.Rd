@@ -9,38 +9,47 @@ psychomatic_report(
   format = "excel",
   file_name = NULL,
   language = c("eng", "esp"),
-  digits = 3
+  digits = 3,
+  overwrite = FALSE,
+  detail = c("report", "audit")
 )
 }
 \arguments{
 \item{...}{Named PsychoMatic result objects or data frames. Supported objects
 include outputs from \code{desc_auto()}, \code{screen_items()}, \code{score_scale()},
-\code{efa_auto()}, \code{cfa_auto()}, \code{factorial_invariance_auto()},
+\code{reliability_auto()}, \code{efa_auto()}, \code{cfa_auto()}, \code{esem_auto()},
+\code{factorial_invariance_auto()}, \code{ordinal_invariance_auto()},
 \code{inv_align_auto()}, \code{irt_auto()}, \code{dif_auto()}, and \code{compare_models_auto()}.}
 
 \item{format}{Output format: \code{"excel"}, \code{"word"}, or both.}
 
-\item{file_name}{Output path or base path. If \code{NULL}, a temporary file is
-created.}
+\item{file_name}{Output path or base path. If \code{NULL}, a unique timestamped
+name is generated in \code{getwd()}. Explicit paths remain authoritative.}
 
 \item{language}{Report language: \code{"eng"} or \code{"esp"}.}
 
 \item{digits}{Number of decimal places for numeric tables.}
+
+\item{overwrite}{If \code{TRUE}, existing report files may be replaced.}
+
+\item{detail}{\code{"report"} (default) organizes reader-facing results by analysis.
+\code{"audit"} retains the detailed technical tables and execution metadata.}
 }
 \value{
 Output path, invisibly. When both formats are requested, returns a
-named character vector.
+named character vector. Excel output carries a \code{sheet_map} attribute that
+records requested and effective worksheet names.
 }
 \description{
 Collects tables from PsychoMatic result objects and writes an Excel workbook
-and/or Word document. The function is intentionally conservative: it only
-writes to the user-supplied path, or to \code{tempdir()} when \code{file_name = NULL}.
+and/or Word document. Reports use the user-supplied path or the current
+working directory (\code{getwd()}) when \code{file_name = NULL}.
 }
 \examples{
-if (requireNamespace("openxlsx", quietly = TRUE)) {
-  items <- data.frame(item1 = 1:5, item2 = c(2, 2, 3, 4, 5))
-  path <- tempfile("psychomatic-report-", fileext = ".xlsx")
-  psychomatic_report(screening = screen_items(items), format = "excel", file_name = path)
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+result <- reliability_auto(MY_DATA[, 3:6])
+psychomatic_report(reliability = result, format = "word", file_name = "Report.docx")
 }
 
 }

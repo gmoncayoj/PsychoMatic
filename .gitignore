@@ -1,3 +1,5 @@
+.agents
+.codex
 .Rhistory
 .RData
 .Ruserdata
@@ -5,9 +7,36 @@
 *.Rproj
 *.tar.gz
 *.Rcheck/
+*.Rcheck.zip
 .r-test-lib/
 .r-lib/
 .Rproj.user
 .httr-oauth
 .DS_Store
 .quarto
+.env
+.env.*
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+
+# Local execution ledgers and reproducible build scratch
+.superpowers/
+/docs/release/1.0.0/work/
+/docs/manuals/work/
+
+# Publish only maintained user/developer documentation, not local release evidence.
+/docs/*
+!/docs/.gitattributes
+!/docs/README.md
+!/docs/MIGRATION_1.0.0.md
+!/docs/TESTING.md
+!/docs/VALIDATION.md
+!/docs/ORDINAL_INVARIANCE.md
+!/docs/PARTIAL_INVARIANCE.md
+!/docs/PRUEBA_RAPIDA.R
+!/docs/assets/
+!/docs/manuals/
+/docs/manuals/pdf-inspection.json

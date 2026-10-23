@@ -14,58 +14,82 @@ efa_auto(
   verbose = TRUE,
   export_format = NULL,
   file_name = NULL,
-  language = "esp",
+  language = "eng",
   seed = NULL,
+  refine = c("remove", "suggest"),
+  parallel_iter = 500L,
+  parallel_quantile = 0.95,
+  repair = c("none", "nearPD"),
+  digits = 3,
+  report = FALSE,
+  format = "excel",
+  overwrite = FALSE,
   ...
 )
 }
 \arguments{
-\item{data}{Data frame or matrix containing numeric item responses.}
+\item{data}{Data frame, matrix, or \code{psychomatic_spec} containing item
+responses.}
 
-\item{rotation}{Rotation family: \code{"oblique"} (oblimin) or \code{"orthogonal"}
-(varimax).}
+\item{rotation}{Rotation family: \code{"oblique"} or \code{"orthogonal"}.}
 
-\item{min_loading}{Minimum acceptable factor loading.}
+\item{min_loading}{Minimum acceptable absolute factor loading.}
 
 \item{min_communality}{Minimum acceptable communality.}
 
 \item{min_cross_loading_diff}{Minimum difference between the two largest
-loadings required to avoid a cross-loading flag.}
+loadings used by the cross-loading screen.}
 
-\item{max_iter}{Maximum number of iterative item-removal steps.}
+\item{max_iter}{Maximum number of item-removal steps.}
 
-\item{verbose}{If \code{TRUE}, prints a console report.}
+\item{verbose}{If \code{TRUE}, print results directly, including when assigned.}
 
 \item{export_format}{Optional export format passed to \code{export_efa()}.}
 
-\item{file_name}{Optional base file name for exported files.}
+\item{file_name}{Optional base path for exported files. When \code{NULL}, reports
+use a unique timestamped name in the working directory (\code{getwd()}).}
 
-\item{language}{Report language: \code{"esp"} or \code{"eng"}.}
+\item{language}{Output language: \code{"esp"} or \code{"eng"}.}
 
-\item{seed}{Optional single integer seed for reproducible random operations.
-Defaults to \code{NULL}, so no seed is set unless explicitly requested.}
+\item{seed}{Optional non-negative integer seed for parallel analysis.}
 
-\item{...}{Deprecated legacy aliases kept temporarily for backward
-compatibility. New code should use the English argument names documented
-above.}
+\item{refine}{\code{"remove"} preserves the historical automated-removal
+workflow; \code{"suggest"} retains every item and reports screening flags.}
+
+\item{parallel_iter}{Number of simulations used by parallel analysis.}
+
+\item{parallel_quantile}{Reference quantile used by parallel analysis.}
+
+\item{repair}{Correlation-matrix repair. \code{"none"} never changes the matrix;
+\code{"nearPD"} explicitly opts into nearest-positive-definite repair.}
+
+\item{digits}{Decimal places in console and reports; stored values keep full precision.}
+
+\item{report}{If \code{TRUE}, also save a reader-facing report.}
+
+\item{format}{Report format: \code{"excel"}, \code{"word"}, or both.}
+
+\item{overwrite}{If \code{TRUE}, allow replacement of an existing report.}
+
+\item{...}{Deprecated Spanish argument aliases.}
 }
 \value{
-Object of class \code{efa_auto} with model results and tidy tables.
+An object of classes \code{efa_auto} and \code{psychomatic_result}. Legacy
+fields remain available during the 1.x compatibility cycle.
 }
 \description{
-Runs an automated exploratory factor analysis workflow with estimator
-selection, parallel analysis, rotation, iterative item screening, reliability,
-and structured output tables.
+Runs a compact exploratory factor-analysis workflow: item checks,
+correlation selection, Mardia diagnostics, parallel analysis, factor fitting,
+item screening, and reliability summaries. Screening can suggest changes or
+remove one item at a time. Every mutation is followed by a complete refit
+that reclassifies the current item set and resolves its correlation method.
+Omega uses the same independent one-factor model per dimension as
+\code{\link[=reliability_auto]{reliability_auto()}}, not the loadings of the exploratory solution.
 }
 \examples{
-set.seed(1)
-factor_score <- rnorm(80)
-items <- data.frame(
-  item1 = factor_score + rnorm(80, sd = 0.4),
-  item2 = factor_score + rnorm(80, sd = 0.4),
-  item3 = factor_score + rnorm(80, sd = 0.4),
-  item4 = factor_score + rnorm(80, sd = 0.4)
-)
-result <- efa_auto(items, max_iter = 1, verbose = FALSE, language = "eng")
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+efa_auto(MY_DATA[, 3:14])
+}
 
 }

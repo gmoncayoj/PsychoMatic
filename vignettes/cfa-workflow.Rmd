@@ -11,59 +11,94 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-# Confirmatory Factor Analysis Workflow
+# A compact CFA
 
-This vignette outlines a small CFA workflow using the bundled continuous
-dataset.
+The local `continuous_items` data are generated from one common
+factor. It is simulated and exists only for reproducible examples.
 
 ```{r setup}
-library(PsychoMatic)
-data(psychomatic_continuous)
-```
-
-## Specify A Model
-
-```{r model}
-model <- "
-factor1 =~ item1 + item2 + item3
-factor2 =~ item4 + item5 + item6
-"
-```
-
-## Compare Candidate Models
-
-`compare_models_auto()` uses `lavaan` directly and returns a compact table for
-alternative CFA specifications. ML-type estimators report information criteria
-when available, whereas WLSMV-style workflows compare models through scaled or
-robust fit indices when available. The code is not evaluated during vignette
-checks to keep package installation fast on constrained machines.
-
-```{r compare-models, eval = FALSE}
-models <- list(
-  one_factor = "general =~ item1 + item2 + item3 + item4 + item5 + item6",
-  two_factor = model
+continuous_items <- lavaan::simulateData(
+  "general =~ 0.7*item1 + 0.7*item2 + 0.7*item3 + 0.7*item4 + 0.7*item5 + 0.7*item6",
+  sample.nobs = 200, seed = 2401
 )
-comparison <- compare_models_auto(
-  psychomatic_continuous,
+model <- "general =~ item1 + item2 + item3 + item4 + item5 + item6"
+```
+
+```{r cfa, eval = FALSE}
+cfa <- PsychoMatic::cfa_auto(
+  continuous_items,
+  model = model,
+  estimator = "ML",
+  language = "eng"
+)
+summary(cfa)$fit
+summary(cfa)$loadings
+```
+
+The fit is not evaluated while building this vignette because `cfa_auto()` may
+also run optional multivariate-normality and reliability diagnostics. The
+installed script provides a deterministic smoke run.
+
+When `estimator = NULL`, automatic selection is a documented heuristic. Inspect
+the requested estimator, effective estimator reported by lavaan, analytic
+sample, convergence, post-check, finite parameters, Heywood diagnostics, and
+the actual base/scaled/robust variant used for each fit index. A good-fitting
+model does not establish construct validity.
+
+# Compare models only when comparable
+
+```{r compare, eval = FALSE}
+models <- list(
+  one_factor = model,
+  two_factor = paste(
+    "factor1 =~ item1 + item2 + item3",
+    "factor2 =~ item4 + item5 + item6",
+    sep = "\n"
+  )
+)
+comparison <- PsychoMatic::compare_models_auto(
+  continuous_items,
   models = models,
   estimator = "ML",
   language = "eng"
 )
 comparison$fit
+comparison$recommendation
 ```
 
-## Full Automated CFA
+`compare_models_auto()` ranks only a unique set with compatible observed
+variables, cases, estimator/estimand, and a common finite fit-index variant.
+AIC and BIC are not exposed as ranking evidence for candidates outside that
+set. Its recommendation is descriptive and should be combined with theory and
+model diagnostics.
 
-The higher-level `cfa_auto()` function adds estimator selection, reliability,
-fit interpretation, warnings, and reporting tables. It is shown but not run by
-default in this vignette because it requires optional diagnostic packages.
+# Reliability and model form
 
-```{r cfa-auto, eval = FALSE}
-cfa_result <- cfa_auto(
-  psychomatic_continuous,
-  model = model,
-  estimator = "ML",
+A fitted lavaan model may be supplied to `reliability_auto()` for model-based
+coefficients when the optional `semTools` package is available. Composite,
+second-order, and bifactor coefficients are different estimands. For bifactor
+models, verify the general/specific structure and whether orthogonality is
+substantively intended; do not interpret coefficient omega as proof of a
+unidimensional scale.
+
+```{r model-reliability, eval = FALSE}
+reliability <- PsychoMatic::reliability_auto(
+  continuous_items,
+  level = "continuous",
+  model = cfa$fit,
   language = "eng"
 )
-summary(cfa_result)
+summary(reliability)$coefficients
 ```
+
+# Conditions, precision, and migration
+
+Analytical values retain full precision; printed and exported tables may use a
+chosen number of digits. From 1.0.0, `cfa$warnings` is a structured condition
+table. Code written for 0.3.x that expected a character vector can temporarily
+use `cfa$warnings_list`; new code should consume the structured form. Engine
+errors are preserved and can produce a `not_evaluable` result rather than a
+favorable interpretation.
+
+`export_cfa()` and `psychomatic_report()` refuse existing output paths unless
+overwrite is explicitly enabled.

@@ -8,8 +8,15 @@ compare_models_auto(
   data,
   models,
   ordered = NULL,
-  estimator = "ML",
-  language = c("eng", "esp")
+  estimator = NULL,
+  language = c("eng", "esp"),
+  digits = 3,
+  report = FALSE,
+  file_name = NULL,
+  format = "excel",
+  overwrite = FALSE,
+  verbose = TRUE,
+  fit_variant = c("scaled", "robust", "base")
 )
 }
 \arguments{
@@ -21,9 +28,29 @@ compare_models_auto(
 \code{NULL} and a categorical estimator such as WLSMV is used, observed items
 referenced in \code{models} are treated as ordered.}
 
-\item{estimator}{Estimator passed to \code{lavaan::cfa()}.}
+\item{estimator}{Estimator passed to \code{lavaan::cfa()}. \code{NULL} (default) or
+\code{"auto"} uses the same category-count, sample-size and Mardia criteria as
+\code{cfa_auto()}, applied to the observed indicators across the candidate models.}
 
 \item{language}{Recommendation language: \code{"eng"} or \code{"esp"}.}
+
+\item{digits}{Decimal places in console and reports; stored values keep full precision.}
+
+\item{report}{If \code{TRUE}, also save a reader-facing report.}
+
+\item{file_name}{Optional base path for exported files. When \code{NULL}, reports
+use a unique timestamped name in the working directory (\code{getwd()}).}
+
+\item{format}{Report format: \code{"excel"}, \code{"word"}, or both.}
+
+\item{overwrite}{If \code{TRUE}, allow replacement of an existing report.}
+
+\item{verbose}{If \code{TRUE}, print results directly, including when assigned.}
+
+\item{fit_variant}{Fit-index variant for both reporting and comparison:
+\code{"scaled"} (default), \code{"robust"}, or \code{"base"}. SRMR remains base.
+Uncorrected estimators use base indices with the default scaled setting.
+Otherwise unavailable requested indices remain missing, without substitution.}
 }
 \value{
 A list of class \code{psychomatic_model_comparison}.
@@ -36,9 +63,12 @@ available, but they are not required and are not used for WLSMV-style
 categorical estimators.
 }
 \examples{
-if (requireNamespace("lavaan", quietly = TRUE)) {
-  models <- list(one = "visual =~ x1 + x2 + x3")
-  compare_models_auto(lavaan::HolzingerSwineford1939, models, estimator = "ML")
+# Replace MY_DATA with your data frame and adapt the item names or columns.
+\dontrun{
+models <- list(one_factor = "F =~ R1 + R2 + R3 + R4 + R5 + R6",
+               two_factors = "F1 =~ R1 + R2 + R3\nF2 =~ R4 + R5 + R6")
+compare_models_auto(MY_DATA, models = models)
+compare_models_auto(MY_DATA, models = models, fit_variant = "robust")
 }
 
 }

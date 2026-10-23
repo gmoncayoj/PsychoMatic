@@ -7,7 +7,18 @@
 #' Runs a confirmatory factor analysis with heuristic estimator selection,
 #' multivariate normality diagnostics, fit indices, reliability estimates, and
 #' model respecification suggestions.
+#' `lavaan` performs the model fit. When installed, `MVN` supplies the raw
+#' Mardia diagnostic used by automatic estimator selection and `semTools`
+#' supplies composite reliability and AVE. Their absence is recorded explicitly
+#' and does not prevent the CFA from being fitted; when normality cannot be
+#' evaluated, automatic selection conservatively uses MLR for continuous data.
+#' Fit indices retain their base, scaled, and robust values, and the effective
+#' variant is identified separately for every index.
 #'
+#' @inheritParams efa_auto
+#' @param fit_variant Preferred fit-index variant: `"scaled"` (default), `"robust"`,
+#'   or `"base"`. Unavailable requested indices fall back to scaled then base.
+#'   Base, scaled and robust estimates remain available in the result.
 #' @param data Data frame containing the observed variables.
 #' @param model Model syntax written for `lavaan`.
 #' @param ordered Optional vector indicating which items should be treated as ordinal.
@@ -17,16 +28,30 @@
 #' @param n_mi Maximum number of modification indices to display.
 #' @param alpha_norm Alpha level used when evaluating multivariate normality.
 #' @param language Report language: `"esp"` or `"eng"`.
+#' @param bifactor_orthogonal Logical scalar used only for detected bifactor
+#'   models. The default preserves the historical orthogonal bifactor fit; set
+#'   `FALSE` only when latent-factor correlations are substantively intended.
 #'
-#' @return Object of class `cfa_auto`.
+#' @return An object of classes `cfa_auto` and `psychomatic_result`. The fitted
+#'   `lavaan` object is available in `fit`; reusable tidy tables are available in
+#'   `tables`, `fit_indices`, `loadings_table`, and `reliability_table`.
+#'   `warnings` is a structured data frame with condition metadata;
+#'   `warnings_list` is the transitional character-vector view retained for
+#'   code written for PsychoMatic 0.3.x.
+#'
+#' @section Compatibility:
+#' Since PsychoMatic 1.0.0, use `result$warnings` for programmatic inspection
+#' of warning sources and messages. Existing code that expects a character
+#' vector can migrate to `result$warnings_list`; this compatibility alias will
+#' be retained through a deprecation cycle. For example,
+#' `warning_messages <- result$warnings_list` replaces code that previously
+#' treated `result$warnings` as character data.
 #'
 #' @examples
-#' if (identical(Sys.getenv("PSYCHOMATIC_RUN_SLOW_EXAMPLES"), "true") &&
-#'     requireNamespace("semTools", quietly = TRUE) &&
-#'     requireNamespace("MVN", quietly = TRUE)) {
-#'   model <- "visual =~ x1 + x2 + x3"
-#'   items <- lavaan::HolzingerSwineford1939[1:80, c("x1", "x2", "x3")]
-#'   result <- cfa_auto(items, model = model, estimator = "ML", language = "eng")
+#' # Replace MY_DATA with your data frame and adapt the item names or columns.
+#' \dontrun{
+#' model <- "F1 =~ R1 + R2 + R3 + R4"
+#' cfa_auto(MY_DATA, model = model)
 #' }
 #'
 #' @export
@@ -38,25 +63,33 @@ cfa_auto <- function(data,
                        mi_threshold = 10,
                        n_mi = 10,
                        alpha_norm = 0.05,
-                       language = "esp") {
+                       language = "eng",
+                       bifactor_orthogonal = TRUE,
+                       digits = 3, report = FALSE, file_name = NULL,
+                       format = "excel", overwrite = FALSE, verbose = TRUE,
+                       fit_variant = c("scaled", "robust", "base")) {
 
+  output <- .pm_output_options(report, format, file_name, overwrite, digits, verbose)
+  fit_variant <- match.arg(fit_variant)
+  pick_variant <- function(values, metric) {
+    .pm_pick_fit_variant(values, metric, priority = unique(c(fit_variant, "scaled", "base")))
+  }
   language <- .normalize_language(language)
   is_english <- identical(language, "eng")
 
-  # --- Verificar paquetes ---
-  pkgs <- c("lavaan", "semTools", "MVN")
-  faltantes <- pkgs[!sapply(pkgs, requireNamespace, quietly = TRUE)]
-  if (length(faltantes) > 0) {
+  if (!requireNamespace("lavaan", quietly = TRUE)) {
     if (is_english) {
-      stop("Required packages are not installed: ",
-           paste(faltantes, collapse = ", "),
-           "\nInstall with: install.packages(c(",
-           paste0('"', faltantes, '"', collapse = ", "), "))")
+      stop("Package 'lavaan' is required.", call. = FALSE)
     }
-    stop("Paquetes requeridos no instalados: ", paste(faltantes, collapse = ", "),
-         "\nInstalar con: install.packages(c(",
-         paste0('"', faltantes, '"', collapse = ", "), "))")
+    stop("Se requiere el paquete 'lavaan'.", call. = FALSE)
   }
+  if (!is.logical(bifactor_orthogonal) || length(bifactor_orthogonal) != 1L ||
+      is.na(bifactor_orthogonal)) {
+    stop("`bifactor_orthogonal` must be TRUE or FALSE.", call. = FALSE)
+  }
+  alpha_norm <- .pm_validate_scalar_number(
+    alpha_norm, "alpha_norm", lower = 0, upper = 1
+  )
 
   # =========================================================================
   # 1. PARSEAR MODELO
@@ -103,22 +136,17 @@ cfa_auto <- function(data,
 
   is_second_order <- length(second_order_factors) > 0
 
-  # Bifactor: un factor carga en TODOS los items observados + factores grupales en subconjuntos
-  is_bifactor <- FALSE
-  general_factor <- NULL
-  specific_factors <- NULL
-
-  if (!is_second_order && length(factors) > 2) {
-    potential_general <- names(which(n_obs_per_factor == length(observed_items)))
-    if (length(potential_general) >= 1) {
-      remaining <- setdiff(names(n_obs_per_factor), potential_general)
-      if (length(remaining) >= 2 && all(n_obs_per_factor[remaining] < length(observed_items))) {
-        is_bifactor <- TRUE
-        general_factor <- potential_general[1]
-        specific_factors <- remaining
-      }
-    }
-  }
+  # Bifactor: exactamente un factor general carga en todos los items y los
+  # factores especificos cargan en subconjuntos. Las estructuras ambiguas no
+  # activan indices especializados.
+  bifactor_detection <- .pm_detect_bifactor_structure(
+    items_per_factor_obs,
+    observed_items = observed_items,
+    is_second_order = is_second_order
+  )
+  is_bifactor <- bifactor_detection$is_bifactor
+  general_factor <- bifactor_detection$general_factor
+  specific_factors <- bifactor_detection$specific_factors
 
   is_unidimensional <- length(factors) == 1 && !is_second_order
 
@@ -162,124 +190,22 @@ cfa_auto <- function(data,
   mardia_kurt_stat <- NA
   mardia_p_skew <- NA
   mardia_p_kurt <- NA
+  mardia_data <- as.data.frame(lapply(data_items, function(x) {
+    if (is.ordered(x)) as.integer(x) else x
+  }))
+  mvn_diagnostic <- .pm_mvn_mardia(
+    mardia_data[complete.cases(mardia_data), , drop = FALSE], alpha = alpha_norm)
+  mvn_result <- mvn_diagnostic$result
+  mardia_p_skew <- mvn_diagnostic$p_skew
+  mardia_p_kurt <- mvn_diagnostic$p_kurt
+  mardia_skew_stat <- mvn_diagnostic$skew_stat
+  mardia_kurt_stat <- mvn_diagnostic$kurt_stat
 
-  if (is.null(estimator)) {
-    if (max_cat <= 5) {
-      # ------ Items ordinales ------
-      if (is.null(ordered)) ordered <- TRUE
-
-      if (n_complete < 200) {
-        estimator <- "ULSMV"
-        estimator_reason <- if (is_english) {
-          sprintf(
-            "Ordinal items (%d-%d cat.) + n=%d (<200) -> ULSMV (recommended for small ordinal samples)",
-            min_cat, max_cat, n_complete
-          )
-        } else {
-          sprintf(
-            "Items ordinales (%d-%d cat.) + n=%d (<200) -> ULSMV (recomendado para muestras pequenas ordinales)",
-            min_cat, max_cat, n_complete
-          )
-        }
-      } else {
-        estimator <- "WLSMV"
-        estimator_reason <- if (is_english) {
-          sprintf(
-            "Ordinal items (%d-%d cat.) + n=%d -> WLSMV (robust WLS for ordinal data)",
-            min_cat, max_cat, n_complete
-          )
-        } else {
-          sprintf(
-            "Items ordinales (%d-%d cat.) + n=%d -> WLSMV (WLS robusto para datos ordinales)",
-            min_cat, max_cat, n_complete
-          )
-        }
-      }
-
-    } else if (max_cat <= 7 && min_cat <= 5) {
-      # ------ Mezcla ------
-      if (is.null(ordered)) ordered <- TRUE
-      estimator <- "WLSMV"
-      estimator_reason <- if (is_english) {
-        sprintf(
-          "Mixed item categories (%d-%d) -> WLSMV (ordinal treatment recommended)",
-          min_cat, max_cat
-        )
-      } else {
-        sprintf(
-          "Mezcla de items con %d-%d categorias -> WLSMV (tratamiento ordinal recomendado)",
-          min_cat, max_cat
-        )
-      }
-
-    } else {
-      # ------ Items continuos (>= 6 categorias) ------
-      if (is.null(ordered)) ordered <- FALSE
-
-      mvn_result <- tryCatch({
-        MVN::mvn(data_items[complete.cases(data_items), ], mvnTest = "mardia")
-      }, error = function(e) NULL)
-
-      if (!is.null(mvn_result)) {
-        mardia_p_skew <- as.numeric(mvn_result$multivariateNormality$`p value`[1])
-        mardia_p_kurt <- as.numeric(mvn_result$multivariateNormality$`p value`[2])
-        mardia_skew_stat <- as.numeric(mvn_result$multivariateNormality$Statistic[1])
-        mardia_kurt_stat <- as.numeric(mvn_result$multivariateNormality$Statistic[2])
-        is_mvn <- !is.na(mardia_p_skew) && !is.na(mardia_p_kurt) &&
-                  (mardia_p_skew > alpha_norm) && (mardia_p_kurt > alpha_norm)
-
-        if (is_mvn) {
-          estimator <- "ML"
-          estimator_reason <- if (is_english) {
-            sprintf(
-              "Continuous items (%d-%d cat.), multivariate normality NOT rejected (Mardia: p_skew=%.4f, p_kurt=%.4f) -> ML",
-              min_cat, max_cat, mardia_p_skew, mardia_p_kurt
-            )
-          } else {
-            sprintf(
-              "Items continuos (%d-%d cat.), normalidad multivariada NO rechazada (Mardia: p_asim=%.4f, p_curt=%.4f) -> ML",
-              min_cat, max_cat, mardia_p_skew, mardia_p_kurt
-            )
-          }
-        } else {
-          estimator <- "MLR"
-          estimator_reason <- if (is_english) {
-            sprintf(
-              "Continuous items (%d-%d cat.), multivariate normality REJECTED (Mardia: p_skew=%.4f, p_kurt=%.4f) -> MLR",
-              min_cat, max_cat, mardia_p_skew, mardia_p_kurt
-            )
-          } else {
-            sprintf(
-              "Items continuos (%d-%d cat.), normalidad multivariada RECHAZADA (Mardia: p_asim=%.4f, p_curt=%.4f) -> MLR",
-              min_cat, max_cat, mardia_p_skew, mardia_p_kurt
-            )
-          }
-        }
-      } else {
-        estimator <- "MLR"
-        estimator_reason <- if (is_english) {
-          sprintf(
-            "Continuous items (%d-%d cat.), normality test unavailable -> MLR as a precaution",
-            min_cat, max_cat
-          )
-        } else {
-          sprintf(
-            "Items continuos (%d-%d cat.), prueba de normalidad no disponible -> MLR como precaucion",
-            min_cat, max_cat
-          )
-        }
-      }
-    }
-  } else {
-    estimator_reason <- if (is_english) {
-      "Estimator specified by the user"
-    } else {
-      "Estimador especificado por el usuario"
-    }
-    if (is.null(ordered)) {
-      ordered <- if (max_cat <= 5) TRUE else FALSE
-    }
-  }
+  selection <- .pm_select_cfa_estimator(max_cat, min_cat, n_complete,
+    mvn_diagnostic, estimator, ordered, language)
+  estimator <- selection$estimator
+  ordered <- selection$ordered
+  estimator_reason <- selection$reason
 
   # =========================================================================
   # 5. AJUSTAR MODELO
@@ -292,13 +218,31 @@ cfa_auto <- function(data,
     fit_args$ordered <- ordered
   }
 
-  # Bifactor: factores ortogonales (general y especificos no correlacionados)
-  if (is_bifactor) {
-    fit_args$orthogonal <- TRUE
+  bifactor_orthogonal_effective <- if (is_bifactor) {
+    isTRUE(bifactor_orthogonal)
+  } else {
+    NA
   }
 
-  fit <- do.call(lavaan::cfa, fit_args)
+  # Bifactor: la ortogonalidad se controla explicitamente.
+  if (is_bifactor) {
+    fit_args$orthogonal <- bifactor_orthogonal_effective
+  }
+
+  fitted_conditions <- .pm_capture_conditions(do.call(lavaan::cfa, fit_args))
+  if (!is.null(fitted_conditions$error)) stop(fitted_conditions$error)
+  fit <- fitted_conditions$value
+  vcov_diagnostic <- tryCatch({
+    values <- eigen(lavaan::lavInspect(fit, "vcov"), symmetric = TRUE, only.values = TRUE)$values
+    list(minimum_eigenvalue = min(values),
+         tolerance = sqrt(.Machine$double.eps) * max(1, max(abs(values))))
+  }, error = function(e) list(minimum_eigenvalue = NA_real_, tolerance = NA_real_, reason = conditionMessage(e)))
   converged <- lavInspect(fit, "converged")
+  bifactor_orthogonal_fitted <- if (is_bifactor) {
+    .pm_bifactor_is_orthogonal(fit, c(general_factor, specific_factors))
+  } else {
+    NA
+  }
 
   # =========================================================================
   # 6. INDICES DE AJUSTE
@@ -306,44 +250,19 @@ cfa_auto <- function(data,
   all_fi <- tryCatch(fitMeasures(fit), error = function(e) NULL)
 
   if (!is.null(all_fi)) {
-    # Seleccionar la mejor version disponible: scaled > robust > base
-    # Prioriza scaled (recomendado en la literatura para CFI, TLI, RMSEA)
-    # Devuelve lista con $value y $variant ("scaled", "robust", o "base")
-    .pick <- function(base, fi_vec) {
-      candidates <- list(
-        list(name = paste0(base, ".scaled"), variant = "scaled"),
-        list(name = paste0(base, ".robust"), variant = "robust"),
-        list(name = base,                   variant = "base")
-      )
-      for (cand in candidates) {
-        if (cand$name %in% names(fi_vec) && !is.na(fi_vec[cand$name])) {
-          return(list(value = unname(fi_vec[cand$name]), variant = cand$variant))
-        }
-      }
-      return(list(value = NA_real_, variant = "base"))
-    }
-
-    # Etiqueta con sufijo segun variante
-    .label <- function(base_label, variant) {
-      switch(variant,
-             robust  = paste0(base_label, " (robust)"),
-             scaled  = paste0(base_label, " (scaled)"),
-             base_label)
-    }
-
     # Extraer cada indice
-    p_chisq  <- .pick("chisq", all_fi)
-    p_df     <- .pick("df", all_fi)
-    p_pval   <- .pick("pvalue", all_fi)
-    p_cfi    <- .pick("cfi", all_fi)
-    p_tli    <- .pick("tli", all_fi)
-    p_rmsea  <- .pick("rmsea", all_fi)
-    p_rmsea_lo <- .pick("rmsea.ci.lower", all_fi)
-    p_rmsea_hi <- .pick("rmsea.ci.upper", all_fi)
-    p_rmsea_p  <- .pick("rmsea.pvalue", all_fi)
+    p_chisq  <- pick_variant(all_fi, "chisq")
+    p_df     <- pick_variant(all_fi, "df")
+    p_pval   <- pick_variant(all_fi, "pvalue")
+    p_cfi    <- pick_variant(all_fi, "cfi")
+    p_tli    <- pick_variant(all_fi, "tli")
+    p_rmsea  <- pick_variant(all_fi, "rmsea")
+    p_rmsea_lo <- pick_variant(all_fi, "rmsea.ci.lower")
+    p_rmsea_hi <- pick_variant(all_fi, "rmsea.ci.upper")
+    p_rmsea_p  <- pick_variant(all_fi, "rmsea.pvalue")
 
     # SRMR: no tiene version scaled/robust tipicamente; probar srmr_bentler tambien
-    p_srmr <- .pick("srmr", all_fi)
+    p_srmr <- pick_variant(all_fi, "srmr")
     if (is.na(p_srmr$value)) {
       # Intentar srmr_bentler (comun en WLSMV)
       if ("srmr_bentler" %in% names(all_fi) && !is.na(all_fi["srmr_bentler"])) {
@@ -355,6 +274,17 @@ cfa_auto <- function(data,
     chisq_ratio <- if (!is.na(p_chisq$value) && !is.na(p_df$value) && p_df$value > 0) {
       p_chisq$value / p_df$value
     } else NA_real_
+    ratio_variants <- c(
+      chisq_ratio = .pm_fit_measure_value(all_fi, "chisq") /
+        .pm_fit_measure_value(all_fi, "df"),
+      chisq_ratio.scaled = .pm_fit_measure_value(all_fi, "chisq.scaled") /
+        .pm_fit_measure_value(all_fi, "df.scaled"),
+      chisq_ratio.robust = .pm_fit_measure_value(all_fi, "chisq.robust") /
+        .pm_fit_measure_value(all_fi, "df.robust")
+    )
+    ratio_variants[!is.finite(ratio_variants)] <- NA_real_
+    p_ratio <- pick_variant(ratio_variants, "chisq_ratio")
+    chisq_ratio <- p_ratio$value
 
     # Determinar variante dominante para la nota informativa
     variants_used <- unique(c(p_cfi$variant, p_tli$variant, p_rmsea$variant))
@@ -397,6 +327,29 @@ cfa_auto <- function(data,
         p_rmsea$value, p_rmsea_lo$value, p_rmsea_hi$value, p_rmsea_p$value,
         p_srmr$value
       ),
+      Base = c(
+        vapply(c("chisq", "df", "pvalue"), function(x) .pm_fit_measure_value(all_fi, x), numeric(1)),
+        ratio_variants[["chisq_ratio"]],
+        vapply(c("cfi", "tli", "rmsea", "rmsea.ci.lower", "rmsea.ci.upper", "rmsea.pvalue", "srmr"),
+               function(x) .pm_fit_measure_value(all_fi, x), numeric(1))
+      ),
+      Scaled = c(
+        vapply(c("chisq", "df", "pvalue"), function(x) .pm_fit_measure_value(all_fi, paste0(x, ".scaled")), numeric(1)),
+        ratio_variants[["chisq_ratio.scaled"]],
+        vapply(c("cfi", "tli", "rmsea", "rmsea.ci.lower", "rmsea.ci.upper", "rmsea.pvalue", "srmr"),
+               function(x) .pm_fit_measure_value(all_fi, paste0(x, ".scaled")), numeric(1))
+      ),
+      Robust = c(
+        vapply(c("chisq", "df", "pvalue"), function(x) .pm_fit_measure_value(all_fi, paste0(x, ".robust")), numeric(1)),
+        ratio_variants[["chisq_ratio.robust"]],
+        vapply(c("cfi", "tli", "rmsea", "rmsea.ci.lower", "rmsea.ci.upper", "rmsea.pvalue", "srmr"),
+               function(x) .pm_fit_measure_value(all_fi, paste0(x, ".robust")), numeric(1))
+      ),
+      Variant = c(
+        p_chisq$variant, p_df$variant, p_pval$variant, p_ratio$variant,
+        p_cfi$variant, p_tli$variant, p_rmsea$variant, p_rmsea_lo$variant,
+        p_rmsea_hi$variant, p_rmsea_p$variant, p_srmr$variant
+      ),
       stringsAsFactors = FALSE
     )
 
@@ -421,6 +374,10 @@ cfa_auto <- function(data,
       Metric = "error",
       Index = .fit_index_base_label("error", language),
       Value = NA,
+      Base = NA_real_,
+      Scaled = NA_real_,
+      Robust = NA_real_,
+      Variant = "base",
       Evaluation = if (is_english) "Not available" else "No disponible",
       stringsAsFactors = FALSE
     )
@@ -452,6 +409,23 @@ cfa_auto <- function(data,
   loadings_df$IC_inf <- loadings_df$CI_lower
   loadings_df$IC_sup <- loadings_df$CI_upper
   loadings_df$Alerta <- loadings_df$Alert
+
+  admissibility <- .pm_cfa_admissibility(
+    fit,
+    standardized_solution = std_sol,
+    converged = converged
+  )
+  admissible <- isTRUE(admissibility$admissible)
+  if (!admissible) {
+    evaluable_metrics <- fit_summary$Metric %in%
+      c("chisq_ratio", "cfi", "tli", "rmsea", "srmr")
+    fit_summary$Evaluation[evaluable_metrics] <- if (is_english) {
+      "Not evaluable"
+    } else {
+      "No evaluable"
+    }
+    fit_summary$Evaluacion <- fit_summary$Evaluation
+  }
 
   # Solo filas con items observados (excluir segundo orden -> primer orden)
   loadings_obs <- loadings_df[loadings_df$Item %in% observed_items, ]
@@ -506,20 +480,43 @@ cfa_auto <- function(data,
   # =========================================================================
   # 10. CONFIABILIDAD
   # =========================================================================
-  reliability_results <- tryCatch({
-
-    if (is_bifactor) {
-      .compute_bifactor_reliability(fit, general_factor, specific_factors,
-                                    observed_items)
-    } else if (is_second_order) {
-      .compute_second_order_reliability(fit, second_order_factors)
-    } else {
-      .compute_standard_reliability(fit)
-    }
-
-  }, error = function(e) {
-    list(type = "error", message = conditionMessage(e))
-  })
+  reliability_results <- if (!admissible) {
+    list(
+      type = if (is_bifactor) {
+        "bifactor"
+      } else if (is_second_order) {
+        "second_order"
+      } else {
+        "standard"
+      },
+      status = "not_evaluable",
+      reason = "inadmissible_cfa_solution",
+      rows = data.frame(
+        group = character(), level = character(), factor = character(),
+        coefficient = character(), metric = character(), value = numeric(),
+        status = character(), reason = character(), stringsAsFactors = FALSE
+      )
+    )
+  } else {
+    tryCatch({
+      if (is_bifactor) {
+        .compute_bifactor_reliability(fit, general_factor, specific_factors,
+                                      observed_items)
+      } else if (is_second_order) {
+        .compute_second_order_reliability(fit, second_order_factors)
+      } else {
+        .compute_standard_reliability(fit)
+      }
+    }, error = function(e) {
+      list(
+        type = "error",
+        status = "not_evaluable",
+        reason = "reliability_error",
+        message = conditionMessage(e),
+        condition = e
+      )
+    })
+  }
 
   # =========================================================================
   # 11. INDICES DE MODIFICACION Y REESPECIFICACIONES
@@ -543,6 +540,25 @@ cfa_auto <- function(data,
       } else {
         "El modelo NO convergio. Los resultados no son confiables."
       })
+  }
+
+  if (isTRUE(converged) && !admissible) {
+    warnings_list <- c(
+      warnings_list,
+      if (is_english) {
+        paste0(
+          "The model converged, but the solution is inadmissible (",
+          paste(admissibility$reason_codes, collapse = ", "),
+          "). Fit interpretation and reliability are not evaluable."
+        )
+      } else {
+        paste0(
+          "El modelo convergio, pero la solucion es inadmisible (",
+          paste(admissibility$reason_codes, collapse = ", "),
+          "). El ajuste y la confiabilidad no son evaluables."
+        )
+      }
+    )
   }
 
   # Varianzas negativas (Heywood)
@@ -587,6 +603,64 @@ cfa_auto <- function(data,
       })
   }
 
+  if (is_bifactor && !isTRUE(bifactor_orthogonal_fitted)) {
+    warnings_list <- c(
+      warnings_list,
+      if (is_english) {
+        "The fitted bifactor is not structurally orthogonal; PUC is not evaluated."
+      } else {
+        "El bifactor ajustado no es estructuralmente ortogonal; no se evalua PUC."
+      }
+    )
+  }
+
+  warnings_structured <- .pm_bind_condition_tables(
+    lavaan_warning = fitted_conditions$warnings,
+    cfa_warning = warnings_list,
+    mvn_warning = mvn_diagnostic$warnings,
+    reliability_warning = reliability_results$warnings
+  )
+  errors_structured <- .pm_bind_condition_tables(
+    mvn_error = mvn_diagnostic$condition,
+    reliability_error = if (!is.null(reliability_results$condition)) {
+      reliability_results$condition
+    } else {
+      reliability_results$semtools_condition
+    }
+  )
+  warnings_list <- unique(warnings_structured$message)
+  estimator_call <- match.call()$estimator
+  estimator_requested <- if (is.null(estimator_call)) {
+    "auto"
+  } else {
+    paste(deparse(estimator_call), collapse = " ")
+  }
+  decision_log <- rbind(
+    .pm_decision(
+      "estimator",
+      estimator_requested,
+      estimator,
+      estimator_reason
+    ),
+    .pm_decision(
+      "bifactor_orthogonality",
+      as.character(bifactor_orthogonal),
+      if (is_bifactor) as.character(bifactor_orthogonal_effective) else "not_applicable",
+      if (is_bifactor) "explicit bifactor setting" else "model is not bifactor"
+    ),
+    .pm_decision(
+      "solution_admissibility",
+      "admissible",
+      if (admissible) "admissible" else "not_evaluable",
+      if (admissible) {
+        "lavaan post-check and parameter-domain checks passed"
+      } else {
+        paste(admissibility$reason_codes, collapse = ", ")
+      },
+      if (admissible) "info" else "warning"
+    )
+  )
+
   # =========================================================================
   # 13. COMPILAR RESULTADOS
   # =========================================================================
@@ -594,6 +668,8 @@ cfa_auto <- function(data,
     # Objeto lavaan
     fit              = fit,
     converged        = converged,
+    admissible       = admissible,
+    admissibility    = admissibility,
     language         = language,
     # Modelo
     model_type       = model_type,
@@ -616,9 +692,16 @@ cfa_auto <- function(data,
     estimator        = estimator,
     estimator_reason = estimator_reason,
     ordered          = ordered,
+    bifactor_orthogonal_requested = bifactor_orthogonal,
+    bifactor_orthogonal_effective = bifactor_orthogonal_effective,
+    bifactor_orthogonal_fitted = bifactor_orthogonal_fitted,
     mvn_result       = mvn_result,
     mardia           = list(skew_stat = mardia_skew_stat, kurt_stat = mardia_kurt_stat,
-                            p_skew = mardia_p_skew, p_kurt = mardia_p_kurt),
+                            p_skew = mardia_p_skew, p_kurt = mardia_p_kurt,
+                            n = n_complete,
+                            ordinal_codes = isTRUE(ordered) || (is.character(ordered) && length(ordered) > 0L),
+                            status = mvn_diagnostic$status,
+                            reason = mvn_diagnostic$reason),
     # Resultados
     fit_indices      = fit_summary,
     fit_summary      = fit_summary,
@@ -635,11 +718,75 @@ cfa_auto <- function(data,
     modification_indices = mi_df,
     respecifications = respec,
     respecification_suggestions = respec,
-    warnings         = warnings_list,
-    warnings_list    = warnings_list
+    warnings         = warnings_structured,
+    warnings_list    = warnings_list,
+    errors           = errors_structured,
+    requested_settings = list(
+      ordered = match.call()$ordered,
+      estimator = match.call()$estimator,
+      fit_variant = fit_variant,
+      std.lv = std.lv,
+      mi_threshold = mi_threshold,
+      n_mi = n_mi,
+      alpha_norm = alpha_norm,
+      language = match.call()$language,
+      bifactor_orthogonal = bifactor_orthogonal
+    ),
+    effective_settings = list(
+      ordered = ordered,
+      estimator = estimator,
+      std.lv = std.lv,
+      fit_variant = fit_variant,
+      language = language,
+      alpha_norm = alpha_norm,
+      bifactor_orthogonal = bifactor_orthogonal_effective
+    ),
+    data_summary = list(
+      n = n_total,
+      p = length(observed_items),
+      complete = n_complete,
+      missing_rows = n_missing_rows
+    ),
+    decision_log = decision_log,
+    diagnostics = list(
+      mvn = mvn_diagnostic,
+      fit_variants = fit_summary[, c("Metric", "Base", "Scaled", "Robust", "Variant"), drop = FALSE],
+      admissibility = admissibility,
+      vcov = vcov_diagnostic,
+      bifactor = list(
+        detection_code = bifactor_detection$code,
+        general_candidates = bifactor_detection$general_candidates,
+        specialized_indices_supported = bifactor_detection$specialized_indices_supported,
+        requested_orthogonal = bifactor_orthogonal,
+        effective_orthogonal = bifactor_orthogonal_effective,
+        fitted_orthogonal = bifactor_orthogonal_fitted
+      )
+    ),
+    conclusion = if (!isTRUE(converged)) {
+      .pm_not_evaluable("The CFA model did not converge.")
+    } else if (!admissible) {
+      .pm_not_evaluable(paste0(
+        "The CFA solution is inadmissible: ",
+        paste(admissibility$reason_codes, collapse = ", "),
+        "."
+      ))
+    } else {
+      NA_character_
+    }
   )
 
   results <- .cfa_add_tidy_fields(results, call = match.call())
-  class(results) <- "cfa_auto"
-  return(results)
+  results$results <- list(
+    fit = results$fit,
+    fit_indices = results$fit_indices,
+    loadings = results$loadings,
+    tidy_loadings = results$loadings_table,
+    higher_order_loadings = results$higher_order_loadings,
+    reliability = results$reliability,
+    reliability_table = results$reliability_table,
+    modification_indices = results$modification_indices,
+    respecification_suggestions = results$respecification_suggestions
+  )
+  class(results) <- c("cfa_auto", "psychomatic_result")
+  .pm_finish_analysis(results, output, language)
 }
