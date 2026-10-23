@@ -908,7 +908,7 @@ test_that("language precedence, methods, and reports preserve raw results", {
   expect_identical(out$effective_settings$language, "eng")
   expect_identical(out$analysis_blueprint$group_source, "column_index")
   expect_true(file.exists(path))
-  expect_identical(out$report_path, normalizePath(path, winslash = "/"))
+  expect_report_test_path(out$report_path, path)
   required_tables <- c(
     "fit", "freed_constraints", "rationale", "anchors", "anchor_counts",
     "comparisons", "criteria", "warnings", "errors", "conclusion",

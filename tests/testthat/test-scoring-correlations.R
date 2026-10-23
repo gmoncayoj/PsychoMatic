@@ -229,9 +229,9 @@ test_that("safe paths add only the requested extension and never overwrite by de
   xlsx <- PsychoMatic:::.pm_safe_output_path(target, extension = ".xlsx")
 
   expect_true(endsWith(xlsx, ".xlsx"))
-  expect_identical(
+  expect_report_test_path(
     xlsx,
-    normalizePath(paste0(target, ".xlsx"), winslash = "/", mustWork = FALSE)
+    paste0(target, ".xlsx"), must_exist = FALSE
   )
   writeLines("existing", xlsx)
   on.exit(unlink(xlsx), add = TRUE)
@@ -239,7 +239,7 @@ test_that("safe paths add only the requested extension and never overwrite by de
     PsychoMatic:::.pm_safe_output_path(target, extension = ".xlsx"),
     "exists"
   )
-  expect_identical(
+  expect_report_test_path(
     PsychoMatic:::.pm_safe_output_path(target, extension = ".xlsx", overwrite = TRUE),
     xlsx
   )

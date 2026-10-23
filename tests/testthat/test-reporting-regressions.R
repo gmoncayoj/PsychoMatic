@@ -124,7 +124,7 @@ test_that("export_cfa uses the common mapped writer and returns paths", {
   ))
 
   expect_false(visible$visible)
-  expect_identical(as.character(visible$value), normalizePath(path, winslash = "/"))
+  expect_report_test_path(as.character(visible$value), path)
   expect_s3_class(attr(visible$value, "sheet_map", exact = TRUE), "data.frame")
   expect_identical(
     attr(visible$value, "sheet_map", exact = TRUE)$effective_sheet,

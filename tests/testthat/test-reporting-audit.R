@@ -375,7 +375,7 @@ test_that("psychomatic_report validates inputs and preflights all outputs atomic
     file_name = excel
   ))
   expect_false(visible$visible)
-  expect_identical(as.character(visible$value), normalizePath(excel, winslash = "/"))
+  expect_report_test_path(as.character(visible$value), excel)
   expect_true(file.exists(excel))
   expect_error(psychomatic_report(x = table, file_name = excel), "exists")
 })

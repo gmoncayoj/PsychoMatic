@@ -74,8 +74,23 @@ build_one <- function(language, input) {
   writeLines(enc2utf8(lines), tex, useBytes = TRUE)
   old <- setwd(build)
   on.exit(setwd(old), add = TRUE)
-  tools::texi2pdf("Rd2.tex", quiet = FALSE, index = TRUE,
-    texinputs = file.path(R.home("share"), "texmf", "tex", "latex"))
+  # R's portable driver avoids the GNU texi2dvi index wrapper used on Linux.
+  # It still runs LaTeX and makeindex and requires a complete reference index.
+  tryCatch(tools::texi2pdf("Rd2.tex", quiet = FALSE, index = TRUE,
+    texi2dvi = "emulation",
+    texinputs = file.path(R.home("share"), "texmf", "tex", "latex")),
+    error = function(error) {
+      for (log in c("Rd2.log", "Rd2.ilg")) {
+        if (file.exists(log)) {
+          cat("\nCompilation diagnostics: ", normalizePath(log, winslash = "/"), "\n", sep = "")
+          cat(tail(readLines(log, warn = FALSE), 100L), sep = "\n")
+        }
+      }
+      stop(error)
+    })
+  index <- "Rd2.ind"
+  if (!file.exists(index) || file.info(index)$size == 0L)
+    stop("Reference index was not generated for ", language)
   if (!file.copy("Rd2.pdf", pdf, overwrite = TRUE)) stop("Cannot save ", pdf)
   message("Saved ", pdf)
   invisible(pdf)
