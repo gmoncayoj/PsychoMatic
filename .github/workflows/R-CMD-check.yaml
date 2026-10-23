@@ -47,6 +47,12 @@ jobs:
         run: Rscript .github/scripts/check-ci-prerequisites.R
       - uses: r-lib/actions/setup-tinytex@v2
         if: matrix.config.os == 'ubuntu-latest' && matrix.config.r == 'release'
+      - name: Install reference manual indexing tools
+        if: matrix.config.os == 'ubuntu-latest' && matrix.config.r == 'release'
+        run: |
+          tlmgr update --self
+          tlmgr install makeindex
+          command -v makeindex
       - name: Validate and build both complete reference manuals
         if: matrix.config.os == 'ubuntu-latest' && matrix.config.r == 'release'
         run: Rscript docs/manuals/build_manuals.R

@@ -36,10 +36,11 @@ build_one <- function(language, input) {
   # Rd2pdf recreates this explicitly bounded scratch directory on every run.
   stopifnot(startsWith(build, paste0(work, "/")))
   pdf <- file.path(outdir, paste0("PsychoMatic_", version, "_", language, ".pdf"))
+  draft <- file.path(work, paste0(tolower(language), "-draft.pdf"))
   logfile <- file.path(work, paste0(tolower(language), "-rd2pdf.log"))
   status <- system2(file.path(R.home("bin"), "R"), c("CMD", "Rd2pdf",
       "--internals", "--no-preview", "--no-clean", "--force",
-      shQuote(paste0("--build-dir=", build)), shQuote(paste0("--output=", pdf)),
+      shQuote(paste0("--build-dir=", build)), shQuote(paste0("--output=", draft)),
       shQuote(input)), stdout = logfile, stderr = logfile)
   if (status != 0L) stop("Rd2pdf failed for ", language, "; see ", logfile)
   tex <- file.path(build, "Rd2.tex")
@@ -92,6 +93,7 @@ build_one <- function(language, input) {
   if (!file.exists(index) || file.info(index)$size == 0L)
     stop("Reference index was not generated for ", language)
   if (!file.copy("Rd2.pdf", pdf, overwrite = TRUE)) stop("Cannot save ", pdf)
+  unlink(draft)
   message("Saved ", pdf)
   invisible(pdf)
 }
