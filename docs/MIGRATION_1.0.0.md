@@ -1,50 +1,52 @@
-# Migración de PsychoMatic 0.3.0 a 1.0.0
+# Migrating from PsychoMatic 0.3.0 to 1.0.0
 
-La serie de desarrollo 0.4.0 se integra en 1.0.0. Este número identifica la
-primera API estable del proyecto y no significa que se haya publicado en CRAN.
+The 0.4.0 development series is incorporated into 1.0.0. This version identifies
+the project's first stable API; the version number alone does not establish
+that a release has been published on CRAN.
 
-## Código existente
+## Existing code
 
-Se conservan las funciones públicas previas y las posiciones de sus argumentos
-compatibles. Revise los resultados antes de reutilizar un análisis archivado:
-la selección de estimadores, preparación ordinal, diagnósticos y presentación
-han recibido correcciones sustantivas documentadas en NEWS.
+Previous public functions and compatible positional arguments are retained.
+Review results before reusing an archived analysis: estimator selection,
+ordinal-data preparation, diagnostics and presentation have received
+substantial corrections documented in NEWS.
 
-- En AFC e invarianza completa, `result$warnings` es una tabla estructurada.
-  Para código antiguo que esperaba texto, utilice `result$warnings_list`, alias
-  transitorio que se conserva durante el ciclo de deprecación.
-- Los resultados nuevos suelen heredar de `psychomatic_result`: separan
-  configuración solicitada/efectiva, resultados, diagnósticos y decisiones.
-  La precisión de impresión no modifica los valores almacenados.
-- La invarianza factorial y el procedimiento ordinal con identificación
-  Wu–Estabrook tienen APIs diferentes. Seleccione el procedimiento de acuerdo
-  con su modelo y explique cualquier liberación de parámetros en invarianza parcial.
-- Las bases de demostración se mantienen como fixtures de desarrollo, fuera
-  de la API instalada. Los ejemplos de ayuda son plantillas para los datos del
-  investigador; las viñetas incluyen demostraciones reproducibles.
-- Los informes automáticos se crean en `getwd()` con nombres únicos, salvo
-  ruta explícita. `overwrite = TRUE` autoriza reemplazar archivos existentes.
+- In CFA and complete invariance, `result$warnings` is a structured table.
+  Legacy code expecting text can use `result$warnings_list`, a transitional
+  alias retained during the deprecation cycle.
+- New results generally inherit from `psychomatic_result`, separating
+  requested/effective settings, results, diagnostics and decisions.
+  Display precision does not alter stored values.
+- Factorial invariance and the ordinal procedure with Wu–Estabrook
+  identification have different APIs. Choose the procedure appropriate for
+  your model and explain any parameter releases in partial invariance.
+- Demonstration datasets remain development fixtures, outside the installed
+  API. Help examples are templates for researchers' own data; vignettes
+  provide reproducible demonstrations.
+- Automatic reports are created in `getwd()` with unique names unless an
+  explicit path is supplied. `overwrite = TRUE` permits replacing existing files.
 
-## Funciones incorporadas
+## Added functions
 
-`psychomatic_spec()` declara estructura y codificación; `reliability_auto()`
-centraliza fiabilidad; `ordinal_invariance_auto()` e `invariance_partial()`
-amplían los procedimientos de invarianza; `network_auto()` y `network_plots()`
-integran análisis de redes y figuras.
+`psychomatic_spec()` declares structure and coding; `reliability_auto()`
+centralizes reliability analysis; `ordinal_invariance_auto()` and
+`invariance_partial()` extend invariance workflows; `network_auto()` and
+`network_plots()` integrate network analysis and figures.
 
-`esem_auto()` ajusta un bloque exploratorio de medición con lavaan. Para geomin,
-seleccione columnas con `items = 2:13` o nombres, nunca pasando un data frame
-en `items`. Target requiere una lista teórica de pertenencias primarias en
-`factors`. Ambas rotaciones son oblicuas; el ajuste global no elige entre ellas.
-`seed = NULL` conserva el comportamiento aleatorio del motor; una semilla
-entera explícita permite reproducibilidad y restaura el estado previo del RNG.
-La sección final de interpretación depende de los resultados y de su
-admisibilidad; requiere revisión sustantiva antes de incorporarla a un manuscrito.
+`esem_auto()` fits an exploratory measurement block with lavaan. For geomin,
+select columns using `items = 2:13` or column names; do not pass a data frame
+as `items`. Target rotation requires a theoretically specified list of primary
+item memberships in `factors`. Both rotations are oblique; global fit does
+not determine which rotation to choose. `seed = NULL` preserves the engine's
+random-number behavior; an explicit integer seed enables reproducibility and
+restores the previous RNG state. The final interpretation section depends on
+the results and their admissibility and requires substantive review before
+inclusion in a manuscript.
 
-## Verificación antes de actualizar un proyecto
+## Verification before updating a project
 
-Guarde el código, la versión de R/dependencias y los resultados antiguos.
-Instale primero el candidato en una biblioteca aislada, ejecute sus análisis
-habituales y contraste preparación, muestras, estimadores e índices efectivos.
-Los manuales de referencia completos EN/ES están en [manuals/](manuals/README.md)
-y la evidencia resumida del candidato en [VALIDATION.md](VALIDATION.md).
+Save your code, R/dependency versions and previous results. First install the
+candidate in an isolated library, run your usual analyses and compare data
+preparation, samples, estimators and the fit indices actually used.
+Complete EN/ES reference manuals are available in [manuals/](manuals/README.md),
+and summarized candidate evidence is in [VALIDATION.md](VALIDATION.md).

@@ -1,51 +1,51 @@
-# PsychoMatic 1.0.0: pruebas reproducibles del flujo simplificado.
-# Ejecutar cada seccion por separado en RStudio. No requiere print()/summary().
+# PsychoMatic: reproducible checks of the simplified workflow.
+# Run each section separately in RStudio. No print()/summary() calls are needed.
 library(PsychoMatic)
-datos <- lavaan::HolzingerSwineford1939
-items <- datos[paste0("x", 1:9)]
-modelo <- 'visual =~ x1 + x2 + x3
+data <- lavaan::HolzingerSwineford1939
+items <- data[paste0("x", 1:9)]
+model <- 'visual =~ x1 + x2 + x3
            textual =~ x4 + x5 + x6
            speed =~ x7 + x8 + x9'
 
 desc_auto(items, digits = 4)
 cormat(items, type = "pearson", digits = 4)
 efa_auto(items, seed = 916, refine = "suggest")
-cfa_auto(datos, modelo)  # seleccion automatica del estimador
-cfa_auto(datos, modelo, estimator = "MLR", fit_variant = "scaled")
-cfa_auto(datos, modelo, estimator = "MLR", fit_variant = "robust")
+cfa_auto(data, model)  # automatic estimator selection
+cfa_auto(data, model, estimator = "MLR", fit_variant = "scaled")
+cfa_auto(data, model, estimator = "MLR", fit_variant = "robust")
 reliability_auto(items[1:3])
-factorial_invariance_auto(datos, "school", modelo)
+factorial_invariance_auto(data, "school", model)
 
-# Confiabilidad basada en el CFA: el objeto solo se guarda para reutilizarlo.
-# El CFA y la confiabilidad imprimen sus resultados al ejecutarse.
-ajuste <- cfa_auto(datos, modelo, estimator = "MLR")
-reliability_auto(items, model = ajuste$fit)
+# CFA-based reliability: save the object only for reuse.
+# CFA and reliability print their results when run.
+fit <- cfa_auto(data, model, estimator = "MLR")
+reliability_auto(items, model = fit$fit)
 
-# Exportar desde la propia funcion; los originales existentes se protegen.
-carpeta <- tempfile("PsychoMatic-pruebas-")
-dir.create(carpeta)
+# Export directly from each function; existing files are protected.
+output_dir <- tempfile("PsychoMatic-tests-")
+dir.create(output_dir)
 efa_auto(items, seed = 916, refine = "suggest", report = TRUE,
-         format = c("excel", "word"), file_name = file.path(carpeta, "AFE"))
-cfa_auto(datos, modelo, report = TRUE, format = "word",
-         file_name = file.path(carpeta, "AFC.docx"))
+         format = c("excel", "word"), file_name = file.path(output_dir, "EFA"))
+cfa_auto(data, model, report = TRUE, format = "word",
+         file_name = file.path(output_dir, "CFA.docx"))
 reliability_auto(items[1:3], report = TRUE,
-                 file_name = file.path(carpeta, "Confiabilidad.xlsx"))
-factorial_invariance_auto(datos, "school", modelo, report = TRUE,
-                         file_name = file.path(carpeta, "Invariancia.xlsx"))
+                 file_name = file.path(output_dir, "Reliability.xlsx"))
+factorial_invariance_auto(data, "school", model, report = TRUE,
+                         file_name = file.path(output_dir, "Invariance.xlsx"))
 
-# Opcionales: usar solo si responden a la pregunta de investigacion.
+# Optional: use only when relevant to the research question.
 dimensionality_sensitivity(items, n_iter = 100, seed = 916)
-dif_auto(items, group = datos$school)
+dif_auto(items, group = data$school)
 
-# La invariancia parcial exige una liberacion y justificacion deliberadas.
-# Ejemplo pedagogico, no recomendacion para modificar este modelo:
-invariance_partial(datos, "school", modelo, free = "x2 ~ 1",
-                   rationale = "Ejemplo pedagogico: evaluar sensibilidad del intercepto x2.",
+# Partial invariance requires a deliberate release and justification.
+# Teaching example, not a recommendation to modify this model:
+invariance_partial(data, "school", model, free = "x2 ~ 1",
+                   rationale = "Teaching example: assess sensitivity of the x2 intercept.",
                    estimator = "ML")
 
-# Para procesos programaticos silenciosos:
-resultado <- cfa_auto(datos, modelo, verbose = FALSE)
+# For silent programmatic workflows:
+result <- cfa_auto(data, model, verbose = FALSE)
 
-# Si una categoria ordinal esta vacia en un grupo, inspeccionar sus frecuencias:
-# table(mis_datos$R5, mis_datos$grupo, useNA = "ifany")
-# No eliminar ni fusionar categorias automaticamente para forzar un ajuste.
+# If an ordinal category is empty within a group, inspect its frequencies:
+# table(my_data$R5, my_data$group, useNA = "ifany")
+# Do not automatically remove or merge categories to force a fit.

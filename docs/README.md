@@ -1,17 +1,21 @@
-# Documentación de PsychoMatic
+# PsychoMatic documentation
 
-- [Validación](VALIDATION.md): mantenimiento 1.0.1 e historial del candidato GPL 1.0.0.
-- [Pruebas de distribución y extendidas](TESTING.md): ejecución y cobertura.
-- [Manuales completos EN/ES](manuals/README.md): 47 fichas y generación reproducible.
-- [Migración a 1.0.0](MIGRATION_1.0.0.md): compatibilidad y nuevas APIs.
-- [ESEM](../vignettes/esem-workflow.Rmd): target/geomin e interpretación.
-- [Invarianza ordinal](ORDINAL_INVARIANCE.md) y [parcial](PARTIAL_INVARIANCE.md).
-- [Prueba rápida](PRUEBA_RAPIDA.R): ejercicio manual con datos públicos.
+- [Validation](VALIDATION.md): 1.0.1 maintenance and the GPL 1.0.0 candidate history.
+- [Distribution and extended tests](TESTING.md): execution and coverage.
+- [Complete EN/ES manuals](manuals/README.md): 47 topics and reproducible builds.
+- [Migration to 1.0.0](MIGRATION_1.0.0.md): compatibility and new APIs.
+- [ESEM](../vignettes/esem-workflow.Rmd): target/geomin rotation and interpretation.
+- [Ordinal](ORDINAL_INVARIANCE.md) and [partial](PARTIAL_INVARIANCE.md) invariance.
+- [Quick test](PRUEBA_RAPIDA.R): a manual walkthrough using public data.
 
-`R/` contiene los motores; `man/`, la ayuda inglesa instalada;
-`inst/examples/`, plantillas de uso; `vignettes/`, guías reproducibles;
-`tests/`, regresiones y fixtures simulados. `docs/` se excluye del tarball.
+`R/` contains the analysis engines; `man/`, the installed English help;
+`inst/examples/`, usage templates; `vignettes/`, reproducible guides;
+and `tests/`, regression tests and simulated fixtures. `docs/` is excluded
+from the source tarball.
 
-Los tarballs, instalaciones de comprobación, registros de trabajo y evidencias
-históricas se conservan fuera de la selección publicada en Git. Los manuales
-completos y sus fuentes editoriales sí forman parte de esta documentación.
+Source archives, check installations, working logs and historical evidence
+are retained outside the files published in Git. The complete manuals and
+their editorial sources are included in this documentation.
+
+Repository documentation is maintained in English. The Spanish reference
+manual and its sources in `manuals/es/` are the intentional exception.

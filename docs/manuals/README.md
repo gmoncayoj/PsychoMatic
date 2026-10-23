@@ -1,49 +1,49 @@
-# Manuales completos de referencia / Complete reference manuals
+# Complete reference manuals
 
-Edición de mantenimiento 1.0.1: conserva las 22 funciones y 47 temas de 1.0.0;
-la corrección afecta a las pruebas de rutas, sin cambios de API ni métodos.
-Los manuales actualizados se construyeron y verificaron en ambos idiomas.
+The 1.0.1 maintenance edition retains all 22 functions and 47 topics from
+1.0.0. The correction affects path tests, with no API or method changes.
+The updated manuals were built and verified in both languages.
 
-- [PsychoMatic_1.0.1_EN.pdf](PsychoMatic_1.0.1_EN.pdf): referencia inglesa actualizada.
-- [PsychoMatic_1.0.1_ES.pdf](PsychoMatic_1.0.1_ES.pdf): traducción española actualizada.
+- [PsychoMatic_1.0.1_EN.pdf](PsychoMatic_1.0.1_EN.pdf): updated English reference.
+- [PsychoMatic_1.0.1_ES.pdf](PsychoMatic_1.0.1_ES.pdf): updated Spanish translation.
 
-Los PDF 1.0.0 se conservan para mantener válidos los enlaces del README que
-ya forma parte del paquete publicado en CRAN.
+The 1.0.0 PDFs are retained to preserve README links already included in the
+package published on CRAN.
 
-Edición del 23 de octubre de 2026: ambos manuales incluyen GPL versión 3 o
-posterior y copyright 2026 José Gamarra-Moncayo. El mantenedor conserva los PDFs
-MIT previos como evidencia histórica local. Los hashes de los archivos vigentes
-se encuentran en [VALIDATION.md](../VALIDATION.md).
+The October 23, 2026 edition of both manuals includes GPL version 3 or later
+and copyright 2026 José Gamarra-Moncayo. The maintainer retains earlier MIT
+PDFs as local historical evidence. Hashes for the corresponding 1.0.0 and
+1.0.1 editions are recorded in [VALIDATION.md](../VALIDATION.md).
 
-- `PsychoMatic_1.0.0_EN.pdf`: referencia inglesa canónica.
-- `PsychoMatic_1.0.0_ES.pdf`: traducción española completa.
+- `PsychoMatic_1.0.0_EN.pdf`: canonical English reference for 1.0.0.
+- `PsychoMatic_1.0.0_ES.pdf`: complete Spanish translation for 1.0.0.
 
-Ambos incluyen todas las fichas de `man/`, también las que R marca como
-internas: 47 temas, con las 22 funciones exportadas y métodos documentados.
-Las firmas, opciones y sintaxis R son iguales en ambos idiomas. Los ejemplos
-de ayuda usan plantillas que el investigador adapta a su data frame.
+Both languages include every topic in `man/`, including those marked internal
+by R: 47 topics covering all 22 exported functions and documented methods.
+Signatures, options and R syntax are identical across languages. Help examples
+use templates that researchers adapt to their data frames.
 
-`man/` sigue siendo la ayuda inglesa instalada y la fuente que CRAN utiliza
-para generar su manual oficial. El PDF español es documentación complementaria
-del proyecto; no sustituye esa ayuda ni implica aprobación editorial de CRAN.
-Los dos PDFs utilizan la composición nativa Rd/LaTeX del manual de referencia.
+`man/` remains the installed English help and the source CRAN uses to generate
+its official manual. The Spanish PDF is supplementary project documentation;
+it does not replace that help or imply CRAN editorial approval. Both PDFs
+use the native Rd/LaTeX reference-manual layout.
 
-## Regenerar
+## Rebuilding
 
-Desde la raíz del repositorio, con R y una distribución LaTeX disponibles:
+From the repository root, with R and a LaTeX distribution available:
 
 ```sh
 Rscript docs/manuals/check_manuals.R
 Rscript docs/manuals/build_manuals.R
 ```
 
-Actualice primero roxygen y la ayuda canónica cuando cambie la API; después
-sincronice la prosa española de `es/man/`. `check_manuals.R` exige igualdad de
-temas, nombres/alias, firmas, argumentos y ejemplos ejecutables, además de
-cobertura de todos los exports. `coverage.csv` registra los hashes de ambas
-fuentes. El constructor conserva sintaxis y etiquetas técnicas, traduce los
-encabezados del manual español y usa una fecha explícita de edición.
+When the API changes, update roxygen and the canonical help first, then
+synchronize the Spanish prose in `es/man/`. `check_manuals.R` requires matching
+topics, names/aliases, signatures, arguments and executable examples, as well
+as coverage of every export. `coverage.csv` records hashes for both sources.
+The builder preserves syntax and technical labels, translates Spanish-manual
+headings and uses an explicit edition date.
 
-Los archivos temporales se crean en `work/`, ignorado por Git. El directorio
-`docs/` completo se excluye del paquete fuente por `.Rbuildignore`, evitando
-incluir un segundo juego de ayuda o PDFs redundantes en el envío a CRAN.
+Temporary files are created in `work/`, which Git ignores. The entire `docs/`
+directory is excluded from the source package through `.Rbuildignore`,
+avoiding duplicate help files or redundant PDFs in the CRAN submission.
