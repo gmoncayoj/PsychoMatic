@@ -34,8 +34,11 @@ informe remoto coincide con la fuente comprobada. Consulte el
 El servicio ejecutó su perfil R-release pese a solicitar R-devel mediante
 el valor oficial del formulario; este resultado no acredita R-devel. Su check
 estándar tampoco sustituye al `--as-cran` completo de Windows descrito arriba.
-El CI multiplataforma de 1.0.1 se revisará tras publicar estos cambios en
-GitHub. No se ha realizado el reenvío editorial de 1.0.1 a CRAN.
+Los resultados del CI multiplataforma se consultan en
+[GitHub Actions](https://github.com/gmoncayoj/PsychoMatic/actions/workflows/R-CMD-check.yaml)
+y corresponden al commit fuente indicado en cada ejecución. Las comprobaciones
+del tarball exacto se documentan por separado arriba. No se ha realizado el
+reenvío editorial de 1.0.1 a CRAN.
 
 ## Historial: candidato GPL 1.0.0
 
