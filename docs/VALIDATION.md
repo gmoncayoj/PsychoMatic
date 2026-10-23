@@ -1,4 +1,43 @@
-# Validación de PsychoMatic 1.0.0
+# Validación de PsychoMatic
+
+## Mantenimiento 1.0.1: corrección CRAN M1
+
+Preparación local iniciada el 23 de octubre de 2026. CRAN ya publica 1.0.0;
+su informe adicional M1mac identifica cuatro fallos de expectativas textuales
+de rutas equivalentes `/var` y `/private/var`. Las correcciones canónicas que
+ya estaban en main se incorporaron al nuevo tarball 1.0.1, con regresiones
+adicionales de barras repetidas y creación/sobrescritura de reportes.
+
+Los 44 motores estadísticos y las 47 fichas Rd siguen idénticos a CRAN 1.0.0.
+La API no cambia. Los artefactos y PDF 1.0.0 se conservan como historial.
+Archivo comprobado: `PsychoMatic_1.0.1.tar.gz`, 452715 bytes; SHA256
+`30890BE9873CBBB2878FDA79B98C89D53AFF4C3D221D5339C32F08204D9535AD`.
+El check completo `R CMD check --as-cran` en Windows 11 / R 4.6.1 finalizó
+con **0 errores, 0 advertencias y 1 NOTE**: `Days since last update: 0`.
+Esta NOTE administrativa se justifica porque CRAN solicitó corregir 1.0.0
+el mismo día de su publicación; se conserva sin desactivar incoming.
+
+Las pruebas aprobaron **3415 aserciones**, sin fallos ni advertencias, con
+13 omisiones intensivas deliberadas del perfil de distribución. Ninguna de
+las cuatro pruebas reportadas se omitió. Ejemplos, viñetas y manuales PDF y
+HTML finalizaron OK. La revisión independiente no encontró bloqueos.
+
+Manuales completos 1.0.1: EN 49 páginas, ES 51 páginas; 47 temas y 22 funciones.
+SHA256 EN: `229C7E32AEC444DAB818E89A851B8547D1BF87B78C738F91C35C09AD3827EC57`.
+SHA256 ES: `E44F2CD9B446CC6242D3970EA5DDF11715592E30AB44853624BAA62650DC9DCA`.
+
+MacBuilder comprobó el mismo archivo en Apple M1 / macOS Tahoe 26.6 / R 4.6.1
+Patched: **Status OK, 0 errores, 0 advertencias y 0 NOTEs**, 3416 aserciones
+aprobadas y las mismas 13 omisiones previstas. La copia de los tests del
+informe remoto coincide con la fuente comprobada. Consulte el
+[informe de MacBuilder](https://mac.R-project.org/macbuilder/results/1792787197-53b23dc7692f1423/).
+El servicio ejecutó su perfil R-release pese a solicitar R-devel mediante
+el valor oficial del formulario; este resultado no acredita R-devel. Su check
+estándar tampoco sustituye al `--as-cran` completo de Windows descrito arriba.
+El CI multiplataforma de 1.0.1 se revisará tras publicar estos cambios en
+GitHub. No se ha realizado el reenvío editorial de 1.0.1 a CRAN.
+
+## Historial: candidato GPL 1.0.0
 
 Comprobaciones finalizadas el 23 de octubre de 2026. Este documento describe
 el candidato con licencia GPL versión 3 o posterior y copyright 2026

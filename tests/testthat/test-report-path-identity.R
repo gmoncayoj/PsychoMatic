@@ -26,5 +26,18 @@ test_that("report path comparisons distinguish identity from textual aliases", {
     canonical_report_test_path(file.path(directory, "future.xlsx")))
   expect_identical(canonical_report_test_path(file.path(alias, "report.xlsx"), must_exist = TRUE),
     canonical_report_test_path(target, must_exist = TRUE))
+  expect_report_test_path(paste0(alias, "//report.xlsx"), target)
+
+  # CRAN M1 exposed different aliases before and after the target existed.
+  stem <- paste0(alias, "//future-report")
+  before <- PsychoMatic:::.pm_safe_output_path(stem, extension = ".xlsx")
+  expected <- file.path(directory, "future-report.xlsx")
+  expect_report_test_path(before, expected, must_exist = FALSE)
+  writeLines("keep the report", before)
+  expect_error(PsychoMatic:::.pm_safe_output_path(stem, extension = ".xlsx"), "exists")
+  after <- PsychoMatic:::.pm_safe_output_path(
+    file.path(directory, "future-report"), extension = ".xlsx", overwrite = TRUE)
+  expect_report_test_path(before, after)
+  expect_identical(readLines(after), "keep the report")
   expect_identical(readLines(target), "original report")
 })

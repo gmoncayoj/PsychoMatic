@@ -1,5 +1,15 @@
 # Manuales completos de referencia / Complete reference manuals
 
+Edición de mantenimiento 1.0.1: conserva las 22 funciones y 47 temas de 1.0.0;
+la corrección afecta a las pruebas de rutas, sin cambios de API ni métodos.
+Los manuales actualizados se construyeron y verificaron en ambos idiomas.
+
+- [PsychoMatic_1.0.1_EN.pdf](PsychoMatic_1.0.1_EN.pdf): referencia inglesa actualizada.
+- [PsychoMatic_1.0.1_ES.pdf](PsychoMatic_1.0.1_ES.pdf): traducción española actualizada.
+
+Los PDF 1.0.0 se conservan para mantener válidos los enlaces del README que
+ya forma parte del paquete publicado en CRAN.
+
 Edición del 23 de octubre de 2026: ambos manuales incluyen GPL versión 3 o
 posterior y copyright 2026 José Gamarra-Moncayo. El mantenedor conserva los PDFs
 MIT previos como evidencia histórica local. Los hashes de los archivos vigentes

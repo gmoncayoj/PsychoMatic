@@ -1,6 +1,6 @@
 # Documentación de PsychoMatic
 
-- [Validación de 1.0.0](VALIDATION.md): resultados del candidato GPL y sus límites.
+- [Validación](VALIDATION.md): mantenimiento 1.0.1 e historial del candidato GPL 1.0.0.
 - [Pruebas de distribución y extendidas](TESTING.md): ejecución y cobertura.
 - [Manuales completos EN/ES](manuals/README.md): 47 fichas y generación reproducible.
 - [Migración a 1.0.0](MIGRATION_1.0.0.md): compatibilidad y nuevas APIs.

@@ -9,9 +9,9 @@
   paste(readLines(path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
 }
 
-test_that("DESCRIPTION declares the local 1.0.0 candidate and dependency floors", {
+test_that("DESCRIPTION declares the local 1.0.1 candidate and dependency floors", {
   description <- read.dcf(.release_path("DESCRIPTION"))
-  expect_identical(unname(description[1L, "Version"]), "1.0.0")
+  expect_identical(unname(description[1L, "Version"]), "1.0.1")
   expect_match(description[1L, "Imports"], "lavaan \\(>= 0\\.7-3\\)")
   suggests <- description[1L, "Suggests"]
   expect_match(suggests, "MVN \\(>= 6\\.3\\)")
@@ -166,7 +166,7 @@ test_that("release documentation covers public additions and methodological caut
   )) {
     expect_match(text, paste0(function_name, "\\(\\)"), info = function_name)
   }
-  expect_match(.read_release_file("README.md"), "1\\.0\\.0")
+  expect_match(.read_release_file("README.md"), "1\\.0\\.1")
   expect_false(grepl("Version 0\\.3\\.0 focuses", .read_release_file("README.md")))
   expect_match(text, "heuristic", ignore.case = TRUE)
   expect_match(text, "not[_ -]?evaluable|no evaluable", ignore.case = TRUE)

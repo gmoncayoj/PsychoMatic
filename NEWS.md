@@ -1,3 +1,15 @@
+# PsychoMatic 1.0.1
+
+- Fix report-path test assertions on macOS, including CRAN's M1 R-devel
+  environment, by comparing canonical filesystem destinations instead of
+  literal `/var` and `/private/var` aliases. The same checks support Windows
+  short paths and repeated path separators.
+- Add regression coverage for output-path identity before and after creating
+  a report, while retaining file-existence and overwrite-protection checks.
+- Include the corrected tests in the source distribution. Statistical
+  functions, numerical results, public APIs and dependency requirements are
+  unchanged from 1.0.0.
+
 # PsychoMatic 1.0.0
 
 ## Release scope

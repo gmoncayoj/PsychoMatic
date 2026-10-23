@@ -4,7 +4,7 @@
 
 **Psychometric analysis and bilingual reports in R.**
 
-PsychoMatic 1.0.0 simplifies descriptives, correlations, factor analysis
+PsychoMatic 1.0.1 simplifies descriptives, correlations, factor analysis
 (EFA, CFA and ESEM), reliability, measurement invariance, IRT/DIF and network
 analysis. Results are available in the console and as Word or Excel reports.
 
@@ -57,8 +57,7 @@ in the [network guide](https://github.com/gmoncayoj/PsychoMatic/blob/main/vignet
 
 ## Documentation
 
-- [English manual](https://github.com/gmoncayoj/PsychoMatic/blob/main/docs/manuals/PsychoMatic_1.0.0_EN.pdf)
-  · [Manual en español](https://github.com/gmoncayoj/PsychoMatic/blob/main/docs/manuals/PsychoMatic_1.0.0_ES.pdf)
+- [Reference manuals · English / Español](https://github.com/gmoncayoj/PsychoMatic/blob/main/docs/manuals/README.md)
 - [Guides and examples](https://github.com/gmoncayoj/PsychoMatic/tree/main/docs)
   · [Migration from 0.3.x](https://github.com/gmoncayoj/PsychoMatic/blob/main/docs/MIGRATION_1.0.0.md)
 
