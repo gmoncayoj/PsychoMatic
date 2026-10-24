@@ -1,6 +1,8 @@
 # PsychoMatic
 
-<img src="docs/assets/Package_image.png" alt="PsychoMatic" width="480" />
+<p align="center">
+  <img src="docs/assets/Package_image.png" alt="PsychoMatic" width="480" />
+</p>
 
 **Psychometric analysis and bilingual reports in R.**
 
